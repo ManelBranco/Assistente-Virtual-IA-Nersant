@@ -13,39 +13,38 @@ function formatThinkingTime(ms) {
     return `${minutes}:${remainder}s`;
 }
 
-function createStatusMenu() {
-    if (document.getElementById("statusPanel")) {
-        return;
+function updateStatsDisplay() {
+    const modalThinking = document.getElementById("modalThinking");
+    const modalMessages = document.getElementById("modalMessages");
+    const modalConversations = document.getElementById("modalConversations");
+    
+    if (modalThinking) modalThinking.textContent = formatThinkingTime(totalThinkingTime);
+    if (modalMessages) modalMessages.textContent = messagesSentCount;
+    if (modalConversations) modalConversations.textContent = conversationsCreated;
+}
+
+function showStatsModal() {
+    updateStatsDisplay();
+    const modal = document.getElementById("statsModal");
+    if (modal) {
+        modal.classList.add("active");
     }
-
-    const statusPanel = document.createElement("div");
-    statusPanel.id = "statusPanel";
-    statusPanel.className = "status-panel";
-    statusPanel.innerHTML = `
-        <div class="status-title">Status da IA</div>
-        <div class="status-item">
-            <span>Tempo a pensar</span>
-            <strong id="statusThinking">0.00s</strong>
-        </div>
-        <div class="status-item">
-            <span>Mensagens enviadas</span>
-            <strong id="statusMessages">0</strong>
-        </div>
-        <div class="status-item">
-            <span>Conversas criadas</span>
-            <strong id="statusConversations">0</strong>
-        </div>
-    `;
-
-    document.body.prepend(statusPanel);
 }
 
-function updateStatusPanel() {
-    createStatusMenu();
-    document.getElementById("statusThinking").textContent = formatThinkingTime(totalThinkingTime);
-    document.getElementById("statusMessages").textContent = messagesSentCount;
-    document.getElementById("statusConversations").textContent = conversationsCreated;
+function closeStatsModal() {
+    const modal = document.getElementById("statsModal");
+    if (modal) {
+        modal.classList.remove("active");
+    }
 }
+
+// Fechar modal ao clicar fora do conteúdo
+window.addEventListener("click", (event) => {
+    const modal = document.getElementById("statsModal");
+    if (event.target === modal) {
+        closeStatsModal();
+    }
+});
 
 async function loadHistory() {
     const res = await fetch("/api/history");
@@ -53,7 +52,7 @@ async function loadHistory() {
 
     conversationHistory = data;
     conversationsCreated = conversationHistory.length + 1;
-    updateStatusPanel();
+    updateStatsDisplay();
 
     const box = document.getElementById("conversations");
     if (!box) {
@@ -79,6 +78,8 @@ async function loadConversation(id) {
     const conversation = await res.json();
     
     const chat = document.getElementById("chat");
+    if (!chat) return;
+    
     chat.innerHTML = "";
     
     conversation.messages.forEach((msg) => {
@@ -108,7 +109,7 @@ async function clearAllHistory() {
         totalThinkingTime = 0;
         messagesSentCount = 0;
         conversationsCreated = 1;
-        updateStatusPanel();
+        updateStatsDisplay();
         await loadHistory();
     }
 }
@@ -117,10 +118,10 @@ async function newChat() {
     await fetch("/api/new-chat", { method: "POST" });
 
     const chat = document.getElementById("chat");
-    chat.innerHTML = "";
+    if (chat) chat.innerHTML = "";
     messagesSentCount = 0;
     conversationsCreated += 1;
-    updateStatusPanel();
+    updateStatsDisplay();
 
     await loadHistory();
 }
@@ -186,7 +187,7 @@ async function send() {
     const totalSeconds = data.time ? (data.time / 1000).toFixed(2) : "0.00";
     totalThinkingTime += data.time || 0;
     messagesSentCount += 1;
-    updateStatusPanel();
+    updateStatsDisplay();
     
     chat.innerHTML += `
     <div class="message bot">
@@ -201,7 +202,14 @@ async function send() {
     await loadHistory();
 }
 
+// Configurar pesquisa ao carregar a página
 window.addEventListener("DOMContentLoaded", () => {
     loadHistory();
-    updateStatusPanel();
+    updateStatsDisplay();
+    
+    // Adicionar evento de pesquisa
+    const searchInput = document.getElementById("search");
+    if (searchInput) {
+        searchInput.addEventListener("input", filterConversations);
+    }
 });
