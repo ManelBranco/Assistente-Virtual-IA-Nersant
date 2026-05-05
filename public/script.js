@@ -2,7 +2,6 @@ let totalThinkingTime = 0;
 let messagesSentCount = 0;
 let conversationsCreated = 0;
 let conversationHistory = [];
-let statusPanelOpen = false;
 
 function formatThinkingTime(ms) {
     const seconds = ms / 1000;
@@ -15,19 +14,15 @@ function formatThinkingTime(ms) {
 }
 
 function createStatusMenu() {
-    const existing = document.getElementById("statusPanel");
-    if (existing) {
-        return existing;
+    if (document.getElementById("statusPanel")) {
+        return;
     }
 
     const statusPanel = document.createElement("div");
     statusPanel.id = "statusPanel";
-    statusPanel.className = "status-panel hidden";
+    statusPanel.className = "status-panel";
     statusPanel.innerHTML = `
-        <div class="status-panel-header">
-            <div class="status-title">Status da IA</div>
-            <button class="status-close" onclick="toggleStatusPanel()">×</button>
-        </div>
+        <div class="status-title">Status da IA</div>
         <div class="status-item">
             <span>Tempo a pensar</span>
             <strong id="statusThinking">0.00s</strong>
@@ -41,22 +36,12 @@ function createStatusMenu() {
             <strong id="statusConversations">0</strong>
         </div>
     `;
-    document.body.appendChild(statusPanel);
-    return statusPanel;
-}
 
-function toggleStatusPanel() {
-    const panel = createStatusMenu();
-    statusPanelOpen = !statusPanelOpen;
-    panel.classList.toggle("hidden", !statusPanelOpen);
+    document.body.prepend(statusPanel);
 }
 
 function updateStatusPanel() {
-    const panel = document.getElementById("statusPanel");
-    if (!panel) {
-        return;
-    }
-
+    createStatusMenu();
     document.getElementById("statusThinking").textContent = formatThinkingTime(totalThinkingTime);
     document.getElementById("statusMessages").textContent = messagesSentCount;
     document.getElementById("statusConversations").textContent = conversationsCreated;
