@@ -21,6 +21,28 @@ let currentConversation = {         // Conversa atual (a que está aberta)
     title: "Nova conversa"
 };
 
+// Adicionar gestão de estatísticas globais
+let globalStats = {
+    totalThinkingTime: 0,
+    messagesSentCount: 0,
+    totalConversations: 0
+};
+
+// Tentar carregar estatísticas do ficheiro
+if (fs.existsSync("stats.json")) {
+    try {
+        const statsData = fs.readFileSync("stats.json", "utf-8");
+        globalStats = JSON.parse(statsData);
+    } catch (error) {
+        console.error("Erro ao ler stats.json:", error);
+    }
+}
+
+// Função para guardar estatísticas
+function saveStats() {
+    fs.writeFileSync("stats.json", JSON.stringify(globalStats, null, 2));
+}
+
 // Ao iniciar, carregar conversas anteriores do ficheiro conversas.json
 if (fs.existsSync("conversas.json")) {
     try {
@@ -131,7 +153,11 @@ app.post("/api/new-chat", (req, res) => {
         }
     }
 
-    currentId++;  // Incrementar ID para nova conversa
+    currentId++;
+    
+    // Incrementar contador de conversas globais
+    globalStats.totalConversations++;
+    saveStats();
 
     // Criar nova conversa vazia
     currentConversation = {
@@ -189,7 +215,36 @@ app.post("/api/clear-history", (req, res) => {
         messages: [],
         title: "Nova conversa"
     };
+    
+    // Reset das estatísticas globais
+    globalStats = {
+        totalThinkingTime: 0,
+        messagesSentCount: 0,
+        totalConversations: 0
+    };
+    saveStats();
+    
     fs.writeFileSync("conversas.json", "[]");  // Escrever array vazio no ficheiro
+    res.json({ ok: true });
+});
+
+// Endpoint para obter estatísticas globais
+app.get("/api/stats", (req, res) => {
+    res.json(globalStats);
+});
+
+// Endpoint para atualizar estatísticas
+app.post("/api/stats/update", (req, res) => {
+    const { thinkingTime, messagesSent } = req.body;
+    
+    if (thinkingTime) {
+        globalStats.totalThinkingTime += thinkingTime;
+    }
+    if (messagesSent) {
+        globalStats.messagesSentCount += messagesSent;
+    }
+    
+    saveStats();
     res.json({ ok: true });
 });
 

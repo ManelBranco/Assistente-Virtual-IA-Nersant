@@ -1,23 +1,22 @@
-// Variáveis globais para estatísticas
-let totalThinkingTime = 0;      // Tempo total que a IA "pensou"
-let messagesSentCount = 0;      // Número total de mensagens enviadas
-let conversationsCreated = 0;   // Número de conversas criadas
-let conversationHistory = [];    // Array com histórico de conversas
-let isSending = false;          // Evitar envios duplicados
+// Variáveis globais para estatísticas (agora carregadas do servidor)
+let totalThinkingTime = 0;
+let messagesSentCount = 0;
+let conversationsCreated = 0;
+let conversationHistory = [];
+let isSending = false;
 
-// Função para formatar o tempo de forma legível (segundos ou minutos:segundos)
+// Função para formatar o tempo de forma legível
 function formatThinkingTime(ms) {
     const totalSeconds = ms / 1000;
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = (totalSeconds % 60).toFixed(2);
     
     if (minutes > 0) {
-        return `${minutes}:${seconds.padStart(5, '0')}s`;  // Ex: 1:23.45s
+        return `${minutes}:${seconds.padStart(5, '0')}s`;
     }
-    return `${seconds}s`;  // Ex: 45.67s
+    return `${seconds}s`;
 }
 
-// Formatar tempo para exibição (versão mais simples)
 function formatTimeDisplay(seconds) {
     if (seconds >= 60) {
         const minutes = Math.floor(seconds / 60);
@@ -27,7 +26,39 @@ function formatTimeDisplay(seconds) {
     return `${seconds.toFixed(2)}s`;
 }
 
-// Renderiza a resposta da IA em Markdown convertido para HTML
+// Carregar estatísticas do servidor
+async function loadStats() {
+    try {
+        const res = await fetch("/api/stats");
+        const stats = await res.json();
+        totalThinkingTime = stats.totalThinkingTime || 0;
+        messagesSentCount = stats.messagesSentCount || 0;
+        conversationsCreated = stats.totalConversations || 0;
+        updateStatsDisplay();
+    } catch (error) {
+        console.error("Erro ao carregar estatísticas:", error);
+    }
+}
+
+// Atualizar estatísticas no servidor
+async function updateStatsOnServer(thinkingTime = 0, messagesSent = 0) {
+    try {
+        await fetch("/api/stats/update", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                thinkingTime: thinkingTime,
+                messagesSent: messagesSent
+            })
+        });
+    } catch (error) {
+        console.error("Erro ao atualizar estatísticas:", error);
+    }
+}
+
+// Renderiza a resposta da IA
 function renderBotMessage(markdownText, metaText) {
     const chat = document.getElementById("chat");
     if (!chat) return;
@@ -43,7 +74,7 @@ function renderBotMessage(markdownText, metaText) {
     chat.appendChild(messageDiv);
 }
 
-// Atualizar os valores no modal de estatísticas
+// Atualizar os valores no modal
 function updateStatsDisplay() {
     const modalThinking = document.getElementById("modalThinking");
     const modalMessages = document.getElementById("modalMessages");
@@ -54,46 +85,42 @@ function updateStatsDisplay() {
     if (modalConversations) modalConversations.textContent = conversationsCreated;
 }
 
-// Abrir o modal de estatísticas
 function showStatsModal() {
-    updateStatsDisplay();                    // Atualizar valores antes de mostrar
+    updateStatsDisplay();
     const modal = document.getElementById("statsModal");
     if (modal) {
-        modal.classList.add("active");       // Adicionar classe que mostra o modal
+        modal.classList.add("active");
     }
 }
 
-// Fechar o modal de estatísticas
 function closeStatsModal() {
     const modal = document.getElementById("statsModal");
     if (modal) {
-        modal.classList.remove("active");    // Remover classe que mostra o modal
+        modal.classList.remove("active");
     }
 }
 
-// Fechar modal se clicar fora do conteúdo (no fundo escuro)
+// Fechar modal se clicar fora
 window.addEventListener("click", (event) => {
     const modal = document.getElementById("statsModal");
-    if (event.target === modal) {            // Se clicou no fundo (não no conteúdo)
+    if (event.target === modal) {
         closeStatsModal();
     }
 });
 
-// Carregar histórico de conversas do servidor
+// Carregar histórico
 async function loadHistory() {
-    const res = await fetch("/api/history");     // Buscar histórico
+    const res = await fetch("/api/history");
     const data = await res.json();
 
     conversationHistory = data;
-    conversationsCreated = conversationHistory.length + 1;  // +1 para conversa atual
-    updateStatsDisplay();
-
+    // Não atualizar conversationsCreated aqui pois já vem do servidor
+    
     const box = document.getElementById("conversations");
     if (!box) return;
 
-    box.innerHTML = "";  // Limpar lista
+    box.innerHTML = "";
 
-    // Criar elemento para cada conversa no histórico
     conversationHistory.forEach((c) => {
         const convDiv = document.createElement("div");
         convDiv.className = "conv";
@@ -101,12 +128,11 @@ async function loadHistory() {
             <div class="conv-title">${c.title || "Conversa sem título"}</div>
             <button class="conv-delete" onclick="deleteConversation(${c.id}, event)">X</button>
         `;
-        convDiv.onclick = () => loadConversation(c.id);  // Clicar na conversa carrega-a
+        convDiv.onclick = () => loadConversation(c.id);
         box.appendChild(convDiv);
     });
 }
 
-// Carregar uma conversa específica pelo ID
 async function loadConversation(id) {
     const res = await fetch(`/api/conversation/${id}`);
     const conversation = await res.json();
@@ -114,11 +140,9 @@ async function loadConversation(id) {
     const chat = document.getElementById("chat");
     if (!chat) return;
     
-    chat.innerHTML = "";  // Limpar chat atual
+    chat.innerHTML = "";
     
-    // Mostrar todas as mensagens da conversa
     conversation.messages.forEach((msg) => {
-        const messageClass = msg.role === "user" ? "user" : "bot";
         if (msg.role === "bot") {
             const botHtml = marked.parse(msg.text || "");
             chat.innerHTML += `<div class="message bot">${botHtml}</div>`;
@@ -130,50 +154,42 @@ async function loadConversation(id) {
         }
     });
     
-    chat.scrollTop = chat.scrollHeight;  // Scroll para o fundo
+    chat.scrollTop = chat.scrollHeight;
 }
 
-// Apagar uma conversa específica
 async function deleteConversation(id, event) {
-    event.stopPropagation();  // Evitar que o clique no botão também clique na conversa
+    event.stopPropagation();
     
     if (confirm("Tens a certeza que queres apagar esta conversa?")) {
-        await fetch(`/api/conversation/${id}`, { method: "DELETE" });  // Pedir ao servidor para apagar
-        await loadHistory();  // Recarregar histórico
+        await fetch(`/api/conversation/${id}`, { method: "DELETE" });
+        await loadHistory();
+        await loadStats(); // Recarregar estatísticas
     }
 }
 
-// Limpar TODO o histórico (apagar todas as conversas)
 async function clearAllHistory() {
     if (confirm("Isto vai apagar TODAS as conversas! Tens a certeza?")) {
         await fetch("/api/clear-history", { method: "POST" });
         const chat = document.getElementById("chat");
         if (chat) {
-            chat.innerHTML = "";  // Limpar chat
+            chat.innerHTML = "";
         }
-        // Reset das estatísticas
-        totalThinkingTime = 0;
-        messagesSentCount = 0;
-        conversationsCreated = 1;
-        updateStatsDisplay();
-        await loadHistory();  // Recarregar histórico (vazio)
+        
+        await loadStats(); // Recarregar estatísticas (serão zero)
+        await loadHistory();
     }
 }
 
-// Criar uma nova conversa
 async function newChat() {
     await fetch("/api/new-chat", { method: "POST" });
 
     const chat = document.getElementById("chat");
-    if (chat) chat.innerHTML = "";  // Limpar chat
-    messagesSentCount = 0;
-    conversationsCreated += 1;      // Incrementar contador
-    updateStatsDisplay();
-
-    await loadHistory();  // Recarregar histórico
+    if (chat) chat.innerHTML = "";
+    
+    await loadStats(); // Recarregar estatísticas (conversasCreated já incrementou no servidor)
+    await loadHistory();
 }
 
-// Filtrar conversas na sidebar (pesquisa)
 function filterConversations() {
     const searchInput = document.getElementById("search");
     if (!searchInput) return;
@@ -183,14 +199,11 @@ function filterConversations() {
 
     convs.forEach((conv) => {
         const title = conv.querySelector(".conv-title")?.textContent.toLowerCase() || "";
-        // Mostrar apenas conversas cujo título contenha o texto pesquisado
         conv.style.display = title.includes(query) ? "flex" : "none";
     });
 }
 
-// Enviar mensagem para a IA
 async function send() {
-    // Evitar envios múltiplos
     if (isSending) return;
     
     const input = document.getElementById("input");
@@ -205,25 +218,23 @@ async function send() {
 
     isSending = true;
     
-    // ⭐ LIMPAR O INPUT IMEDIATAMENTE (antes de qualquer outra ação)
     input.value = "";
 
-    // Mostrar mensagem do utilizador no chat
+    // Mostrar mensagem do utilizador
     const userMessageDiv = document.createElement("div");
     userMessageDiv.className = "message user";
     userMessageDiv.textContent = message;
     chat.appendChild(userMessageDiv);
     
-    // Mostrar indicador de "A pensar..." com temporizador
+    // Mostrar indicador de "A pensar..."
     const loadingDiv = document.createElement("div");
     loadingDiv.className = "message bot";
     loadingDiv.id = "loading";
     loadingDiv.innerHTML = `A pensar... <span id="timer">0.00s</span>`;
     chat.appendChild(loadingDiv);
     
-    const startTime = Date.now();  // Marcar início
+    const startTime = Date.now();
     
-    // Atualizar temporizador a cada 100ms com formato minutos:segundos
     const timerInterval = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const totalSeconds = elapsed / 1000;
@@ -243,7 +254,6 @@ async function send() {
         }
     }, 100);
     
-    // Enviar mensagem ao servidor
     const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -252,50 +262,50 @@ async function send() {
         body: JSON.stringify({ message, model })
     });
 
-    const data = await res.json();  // Receber resposta
+    const data = await res.json();
     
-    clearInterval(timerInterval);   // Parar temporizador
+    clearInterval(timerInterval);
     const loadingElement = document.getElementById("loading");
-    if (loadingElement) loadingElement.remove();  // Remover indicador de "A pensar..."
+    if (loadingElement) loadingElement.remove();
     
-    // Atualizar estatísticas com tempo formatado
-    totalThinkingTime += data.time || 0;
-    messagesSentCount += 1;
-    updateStatsDisplay();
+    // Atualizar estatísticas globais
+    if (data.time) {
+        totalThinkingTime += data.time;
+        messagesSentCount += 1;
+        
+        // Enviar atualização para o servidor
+        await updateStatsOnServer(data.time, 1);
+        updateStatsDisplay();
+    }
     
-    // Formatar tempo final para exibição
     const totalSeconds = data.time ? (data.time / 1000) : 0;
     const timeText = formatTimeDisplay(totalSeconds);
     
-    // Mostrar resposta da IA no chat com Markdown convertido para HTML
     renderBotMessage(data.reply, timeText);
 
-    chat.scrollTop = chat.scrollHeight;  // Scroll para o fundo
+    chat.scrollTop = chat.scrollHeight;
 
-    await loadHistory();  // Recarregar histórico (para mostrar nova conversa na sidebar)
+    await loadHistory();
     
     isSending = false;
 }
 
-// Configurar eventos quando a página carregar
-window.addEventListener("DOMContentLoaded", () => {
-    loadHistory();
-    updateStatsDisplay();
+// Inicializar tudo quando a página carregar
+window.addEventListener("DOMContentLoaded", async () => {
+    await loadStats();
+    await loadHistory();
     
-    // Configurar evento de pesquisa em tempo real
     const searchInput = document.getElementById("search");
     if (searchInput) {
         searchInput.addEventListener("input", filterConversations);
     }
     
-    // Enviar mensagem com tecla Enter
     const messageInput = document.getElementById("input");
     if (messageInput) {
         messageInput.addEventListener("keypress", function(event) {
-            // Verificar se a tecla pressionada é o Enter
             if (event.key === "Enter") {
-                event.preventDefault();  // Evitar comportamento padrão (como enviar formulário)
-                send();                  // Chamar a função de enviar mensagem
+                event.preventDefault();
+                send();
             }
         });
     }
