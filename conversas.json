@@ -1,1 +1,59 @@
-[]
+[
+  {
+    "id": 0,
+    "messages": [
+      {
+        "role": "user",
+        "text": "olá"
+      },
+      {
+        "role": "bot",
+        "text": "Bom dia. Sou o assistente virtual de Inteligência Artificial da Nersant de Torres Novas.\n\nEm que posso ajudar?"
+      },
+      {
+        "role": "user",
+        "text": "quero entrar em contato com a empresa"
+      },
+      {
+        "role": "bot",
+        "text": "Sou o assistente virtual de Inteligência Artificial da Nersant de Torres Novas.\n\nPara que possa encaminhar o seu contacto de forma eficaz, gostaria de saber qual o tema ou a área de interesse que motiva esta comunicação.\n\nEm que podo ajudar?"
+      }
+    ],
+    "title": "olá"
+  },
+  {
+    "id": 7,
+    "messages": [
+      {
+        "role": "user",
+        "text": "olá"
+      },
+      {
+        "role": "bot"
+      }
+    ],
+    "title": "olá"
+  },
+  {
+    "id": 8,
+    "messages": [
+      {
+        "role": "user",
+        "text": "boas tardes"
+      },
+      {
+        "role": "bot",
+        "text": "Bom dia! Sou um assistente virtual da Inteligência Artificial da Nersant de Torres Novas. Como posso te ajudar hoje?"
+      },
+      {
+        "role": "user",
+        "text": "como posso resolver um problema de login no site"
+      },
+      {
+        "role": "bot",
+        "text": "Para resolver um problema de login no site, você pode seguir estas etapas:\n\n1. **Verifique os dados de acesso**: Certifique‑se de estar inserindo o endereço de e-mail ou a conta correta e que não há erros tipográficos nas suas credenciais (senhas, nomes de utilizador etc.).\n\n2. **Recuperação de palavra-passe**: Se esquecer a sua palavra‑senha, geralmente existe um botão \"Esqueci a minha palavra‑senha\" ou semelhante na página de login. Clique nele para receber uma nova senha por e‑mail.\n\n3. **Verifique o sinalizante 'Iniciar sessão'**: Certifique‑se de estar ligado à rede que deve ser utilizada para o acesso ao site, pois algumas redes podem bloquear inadvertidamente o acesso a certas páginas.\n\n4. **Limpe as suas cookies e cache do navegador**: Às vezes, os dados armazenados pelo seu browser (cookies e cache) podem causar interferências no processo de login. Feche o seu browser completamente e reinicie‑o para limpar esses arquivos temporários.\n\n5. **Atualize o seu navegador**: Se estiver a utilizar uma versão antiga do seu browser, pode ocorrer problemas de compatibilidade que impedem o acesso. Verifique se está a utilizar a última versão disponível do seu navegador e atualize‑o caso contrário.\n\n6. **Desative as extensões do navegador**: Algumas extensões ou plugins instalados podem interferir com a funcionalidade do site, especialmente aquelas que modificam o comportamento de login. Desative temporariamente estas extensões para testar se isso resolve o problema.\n\n7. **Verifique configurações de segurança**: Se estiver usando um firewall avançado ou uma antivírus com configurações mais rigorosas, pode bloquear o site por motivos de segurança. Verifique as configurações de segurança do seu software antivirus ou firewall e verifique se não está a bloquear o site.\n\n8. **Contate suporte ao cliente**: Caso todos os passos anteriores não funcionem, considere entrar em contato com o suporte técnico do site. Eles podem ter informações mais detalhadas sobre o problema específico que você enfrenta e poderão oferecer soluções adicionais ou remediações.\n\nSe precisar de ajuda adicional ou tiver alguma dúvida ao seguir estas etapas, não hesite em perguntar."
+      }
+    ],
+    "title": "boas tardes"
+  }
+]
