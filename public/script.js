@@ -1,9 +1,19 @@
+
 // Variáveis globais para estatísticas (agora carregadas do servidor)
 let totalThinkingTime = 0;
 let messagesSentCount = 0;
 let conversationsCreated = 0;
 let conversationHistory = [];
 let isSending = false;
+
+// Variáveis globais para estatísticas
+let totalThinkingTime = 0;      // Tempo total que a IA "pensou"
+let messagesSentCount = 0;      // Número total de mensagens enviadas
+let conversationsCreated = 0;   // Número de conversas criadas
+let conversationHistory = [];    // Array com histórico de conversas
+let isSending = false;          // Evitar envios duplicados
+let isCreatingChat = false;     // Evitar cliques duplicados em nova conversa
+
 
 // Função para formatar o tempo de forma legível
 function formatThinkingTime(ms) {
@@ -114,8 +124,14 @@ async function loadHistory() {
     const data = await res.json();
 
     conversationHistory = data;
+
     // Não atualizar conversationsCreated aqui pois já vem do servidor
     
+
+    conversationsCreated = conversationHistory.length;  // Contar apenas conversas guardadas
+    updateStatsDisplay();
+
+
     const box = document.getElementById("conversations");
     if (!box) return;
 
@@ -174,20 +190,45 @@ async function clearAllHistory() {
         if (chat) {
             chat.innerHTML = "";
         }
+
         
         await loadStats(); // Recarregar estatísticas (serão zero)
         await loadHistory();
+
+        // Reset das estatísticas
+        totalThinkingTime = 0;
+        messagesSentCount = 0;
+        conversationsCreated = 0;
+        updateStatsDisplay();
+        await loadHistory();  // Recarregar histórico (vazio)
+
     }
 }
 
 async function newChat() {
-    await fetch("/api/new-chat", { method: "POST" });
+    if (isCreatingChat) return;
+    isCreatingChat = true;
+
 
     const chat = document.getElementById("chat");
     if (chat) chat.innerHTML = "";
     
     await loadStats(); // Recarregar estatísticas (conversasCreated já incrementou no servidor)
     await loadHistory();
+
+    try {
+        await fetch("/api/new-chat", { method: "POST" });
+
+        const chat = document.getElementById("chat");
+        if (chat) chat.innerHTML = "";  // Limpar chat
+        messagesSentCount = 0;
+        updateStatsDisplay();
+
+        await loadHistory();  // Recarregar histórico
+    } finally {
+        isCreatingChat = false;
+    }
+
 }
 
 function filterConversations() {
