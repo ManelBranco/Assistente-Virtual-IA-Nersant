@@ -70,7 +70,7 @@ app.post("/api/chat", async (req, res) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: model,           // Modelo escolhido (granite, gemma, llama)
+                model: model,           // Modelo escolhido (granite, gemma, llama, deepseek, etc.)
                 prompt: fullPrompt,    // Prompt completo
                 stream: false          // Não usar streaming, esperar resposta completa
             })
