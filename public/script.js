@@ -164,6 +164,9 @@ async function send() {
     const message = input.value.trim();
     if (!message) return;
 
+    //limpar a mensagem imediatamente
+      input.value = "";
+
     // Mostrar mensagem do utilizador no chat
     chat.innerHTML += `<div class="message user">${message}</div>`;
     
