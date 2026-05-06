@@ -8,7 +8,7 @@ app.use(express.json());             // Permitir que o servidor leia JSON no cor
 
 // Rota principal - serve a página HTML do chat
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index_working.html"));
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 app.use(express.static("public"));   // Servir ficheiros estáticos (CSS, JS, imagens)
 
