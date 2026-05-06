@@ -4,6 +4,7 @@ let messagesSentCount = 0;      // Número total de mensagens enviadas
 let conversationsCreated = 0;   // Número de conversas criadas
 let conversationHistory = [];    // Array com histórico de conversas
 let isSending = false;          // Evitar envios duplicados
+let isCreatingChat = false;     // Evitar cliques duplicados em nova conversa
 
 // Função para formatar o tempo de forma legível (segundos ou minutos:segundos)
 function formatThinkingTime(ms) {
@@ -85,7 +86,7 @@ async function loadHistory() {
     const data = await res.json();
 
     conversationHistory = data;
-    conversationsCreated = conversationHistory.length + 1;  // +1 para conversa atual
+    conversationsCreated = conversationHistory.length;  // Contar apenas conversas guardadas
     updateStatsDisplay();
 
     const box = document.getElementById("conversations");
@@ -154,7 +155,7 @@ async function clearAllHistory() {
         // Reset das estatísticas
         totalThinkingTime = 0;
         messagesSentCount = 0;
-        conversationsCreated = 1;
+        conversationsCreated = 0;
         updateStatsDisplay();
         await loadHistory();  // Recarregar histórico (vazio)
     }
@@ -162,15 +163,21 @@ async function clearAllHistory() {
 
 // Criar uma nova conversa
 async function newChat() {
-    await fetch("/api/new-chat", { method: "POST" });
+    if (isCreatingChat) return;
+    isCreatingChat = true;
 
-    const chat = document.getElementById("chat");
-    if (chat) chat.innerHTML = "";  // Limpar chat
-    messagesSentCount = 0;
-    conversationsCreated += 1;      // Incrementar contador
-    updateStatsDisplay();
+    try {
+        await fetch("/api/new-chat", { method: "POST" });
 
-    await loadHistory();  // Recarregar histórico
+        const chat = document.getElementById("chat");
+        if (chat) chat.innerHTML = "";  // Limpar chat
+        messagesSentCount = 0;
+        updateStatsDisplay();
+
+        await loadHistory();  // Recarregar histórico
+    } finally {
+        isCreatingChat = false;
+    }
 }
 
 // Filtrar conversas na sidebar (pesquisa)
