@@ -71,7 +71,7 @@ async function loadHistory() {
         convDiv.className = "conv";
         convDiv.innerHTML = `
             <div class="conv-title">${c.title || "Conversa sem título"}</div>
-            <button class="conv-delete" onclick="deleteConversation(${c.id}, event)">🗑️</button>
+            <button class="conv-delete" onclick="deleteConversation(${c.id}, event)">X</button>
         `;
         convDiv.onclick = () => loadConversation(c.id);  // Clicar na conversa carrega-a
         box.appendChild(convDiv);
@@ -227,7 +227,7 @@ window.addEventListener("DOMContentLoaded", () => {
         searchInput.addEventListener("input", filterConversations);
     }
     
-    // ⭐ NOVO: Enviar mensagem com tecla Enter
+    // NOVO: Enviar mensagem com tecla Enter
     const messageInput = document.getElementById("input");
     if (messageInput) {
         messageInput.addEventListener("keypress", function(event) {
