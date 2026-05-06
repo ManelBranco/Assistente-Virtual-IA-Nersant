@@ -18,13 +18,13 @@
     "messages": [
       {
         "role": "user",
-        "text": "olá"
+        "text": "como posso entrar em contacto com a empresa"
       },
       {
         "role": "bot",
-        "text": "Olá! Sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso ajudar hoje?"
+        "text": "Para entrar em contacto com a Nersant de Torres Novas, você pode utilizar os seguintes canais:\n\n1. **Site Oficial:** Visite o site da Nersant através do link [nersant.pt](http://www.nersant.pt). Geralmente, há uma seção \"Contato\" ou \"Contacto\" na página inicial onde você pode encontrar o telefone, e-mail ou endereço físico da empresa.\n\n2. **Telefone:** Procure o número de telefone oficial na página de contato do site. Ligue para esse número para obter assistência imediata ou direcionamento para a pessoa certa dentro da empresa.\n\n3. **E‑mail:** Muitas empresas fornecem um endereço de e‑mail específico para consultas oficiais ou pedidos de apoio. Verifique o site para este detalhe.\n\n4. **Redes Sociais:** A Nersant pode estar presente em plataformas como Facebook, Twitter ou LinkedIn. Você pode enviar uma mensagem direta através dessas redes sociais, o que às vezes acelera a resposta.\n\n5. **Fórum de Perguntas e Respostas:** Algumas empresas mantêm um fórum ou página de perguntas e respostas onde você pode postar sua dúvida e esperar por uma resposta da empresa.\n\n6. **Representante Local:** Se precisar de atendimento mais direto, procure o endereço físico da filial mais próxima e entre em contacto diretamente por lá.\n\nCertifique‑se sempre de verificar os detalhes nos canais oficiais para evitar enganos ou informações desatualizadas. Caso tenha outras dúvidas ou precise de ajuda com algo específico, estou à disposição!"
       }
     ],
-    "title": "olá"
+    "title": "como posso entrar em contacto..."
   }
 ]
