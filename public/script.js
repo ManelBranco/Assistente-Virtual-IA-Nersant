@@ -164,6 +164,9 @@ async function send() {
     const message = input.value.trim();
     if (!message) return;
 
+    //limpar a mensagem imediatamente
+      input.value = "";
+
     // Mostrar mensagem do utilizador no chat
     chat.innerHTML += `<div class="message user">${message}</div>`;
     
@@ -227,7 +230,7 @@ window.addEventListener("DOMContentLoaded", () => {
         searchInput.addEventListener("input", filterConversations);
     }
     
-    // ⭐ NOVO: Enviar mensagem com tecla Enter
+    // NOVO: Enviar mensagem com tecla Enter
     const messageInput = document.getElementById("input");
     if (messageInput) {
         messageInput.addEventListener("keypress", function(event) {
