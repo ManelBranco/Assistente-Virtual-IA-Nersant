@@ -15,22 +15,6 @@ function formatThinkingTime(ms) {
     return `${minutes}:${remainder}s`;
 }
 
-// Renderiza a resposta da IA em Markdown convertido para HTML
-function renderBotMessage(markdownText, metaText) {
-    const chat = document.getElementById("chat");
-    if (!chat) return;
-
-    const messageDiv = document.createElement("div");
-    messageDiv.className = "message bot";
-    const botHtml = marked.parse(markdownText || "");
-    messageDiv.innerHTML = `
-        ${botHtml}
-        <div class="meta">${metaText}</div>
-    `;
-
-    chat.appendChild(messageDiv);
-}
-
 // Atualizar os valores no modal de estatísticas
 function updateStatsDisplay() {
     const modalThinking = document.getElementById("modalThinking");
@@ -107,15 +91,7 @@ async function loadConversation(id) {
     // Mostrar todas as mensagens da conversa
     conversation.messages.forEach((msg) => {
         const messageClass = msg.role === "user" ? "user" : "bot";
-        if (msg.role === "bot") {
-            const botHtml = marked.parse(msg.text || "");
-            chat.innerHTML += `<div class="message bot">${botHtml}</div>`;
-        } else {
-            const userDiv = document.createElement("div");
-            userDiv.className = "message user";
-            userDiv.textContent = msg.text;
-            chat.appendChild(userDiv);
-        }
+        chat.innerHTML += `<div class="message ${messageClass}">${msg.text}</div>`;
     });
     
     chat.scrollTop = chat.scrollHeight;  // Scroll para o fundo
@@ -192,17 +168,10 @@ async function send() {
       input.value = "";
 
     // Mostrar mensagem do utilizador no chat
-    const userMessageDiv = document.createElement("div");
-    userMessageDiv.className = "message user";
-    userMessageDiv.textContent = message;
-    chat.appendChild(userMessageDiv);
+    chat.innerHTML += `<div class="message user">${message}</div>`;
     
     // Mostrar indicador de "A pensar..." com temporizador
-    const loadingDiv = document.createElement("div");
-    loadingDiv.className = "message bot";
-    loadingDiv.id = "loading";
-    loadingDiv.innerHTML = `A pensar... <span id="timer">0.00</span>s`;
-    chat.appendChild(loadingDiv);
+    chat.innerHTML += `<div class="message bot" id="loading">A pensar... <span id="timer">0.00</span>s</div>`;
     
     const startTime = Date.now();  // Marcar início
     
@@ -236,8 +205,13 @@ async function send() {
     messagesSentCount += 1;
     updateStatsDisplay();
     
-    // Mostrar resposta da IA no chat com Markdown convertido para HTML
-    renderBotMessage(data.reply, `${totalSeconds}s`);
+    // Mostrar resposta da IA no chat
+    chat.innerHTML += `
+    <div class="message bot">
+        ${data.reply}
+        <div class="meta"> ${totalSeconds}s</div>
+    </div>
+    `;
 
     input.value = "";               // Limpar input
     chat.scrollTop = chat.scrollHeight;  // Scroll para o fundo
