@@ -44,7 +44,7 @@ currentConversation = {
 // Endpoint para enviar mensagens ao modelo de IA (Ollama)
 app.post("/api/chat", async (req, res) => {
     const { message, model } = req.body;  // Receber mensagem e modelo escolhido
-    const systemPrompt = `Responde sempre em português de Portugal. Sê natural, direto e formal. Apenas na primeira mensagem apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Nas restantes mensagens não repitas a apresentação. Pergunta sempre em que podes ajudar.`;
+    const systemPrompt = `Responde sempre em português de Portugal. Sê natural, direto e formal. Apenas na primeira mensagem apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Nas restantes mensagens não repitas a apresentação. Apenas na primeira mensagem pergunta em que podes ajudar. Nas restantes mensagens não repitas`;
     const fullPrompt = systemPrompt + "\n\nUtilizador: " + message;  // Juntar prompt do sistema com a mensagem
     const start = Date.now();  // Marcar início para calcular tempo de resposta
 
