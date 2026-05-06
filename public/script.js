@@ -218,12 +218,24 @@ async function send() {
 
 // Configurar eventos quando a página carregar
 window.addEventListener("DOMContentLoaded", () => {
-    loadHistory();                  // Carregar conversas anteriores
-    updateStatsDisplay();           // Inicializar estatísticas
+    loadHistory();
+    updateStatsDisplay();
     
     // Configurar evento de pesquisa em tempo real
     const searchInput = document.getElementById("search");
     if (searchInput) {
         searchInput.addEventListener("input", filterConversations);
+    }
+    
+    // ⭐ NOVO: Enviar mensagem com tecla Enter
+    const messageInput = document.getElementById("input");
+    if (messageInput) {
+        messageInput.addEventListener("keypress", function(event) {
+            // Verificar se a tecla pressionada é o Enter
+            if (event.key === "Enter") {
+                event.preventDefault();  // Evitar comportamento padrão (como enviar formulário)
+                send();                  // Chamar a função de enviar mensagem
+            }
+        });
     }
 });
