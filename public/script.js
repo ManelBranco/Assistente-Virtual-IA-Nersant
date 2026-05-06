@@ -100,9 +100,10 @@ function closeConfirmModal() {
 }
 
 async function runConfirmAction() {
+    const action = confirmAction;
     closeConfirmModal();
-    if (typeof confirmAction === "function") {
-        await confirmAction();
+    if (typeof action === "function") {
+        await action();
     }
 }
 
@@ -152,9 +153,13 @@ async function loadHistory() {
         titleDiv.textContent = c.title || "Conversa sem título";
 
         const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
         deleteButton.className = "conv-delete";
         deleteButton.textContent = "X";
-        deleteButton.addEventListener("click", (event) => deleteConversation(c.id, event));
+        deleteButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            deleteConversation(c.id, event);
+        });
 
         convDiv.appendChild(titleDiv);
         convDiv.appendChild(deleteButton);
