@@ -397,6 +397,100 @@ button:hover {
     font-size: 14px;
 }
 
+.confirm-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    z-index: 1100;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.confirm-modal.active {
+    display: flex;
+}
+
+.confirm-content {
+    width: min(100%, 420px);
+    background: #0f172a;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.45);
+    color: #f8fafc;
+    animation: modalFadeIn 0.25s ease;
+}
+
+.confirm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.confirm-header h3 {
+    margin: 0 0 6px;
+    font-size: 20px;
+}
+
+.confirm-header p {
+    margin: 0;
+    font-size: 14px;
+    color: #cbd5e1;
+}
+
+.close-confirm {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #f8fafc;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.close-confirm:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+.confirm-body {
+    margin: 22px 0;
+    padding: 18px 20px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 18px;
+}
+
+.confirm-body p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #e2e8f0;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.confirm-actions .btn-secondary,
+.confirm-actions .btn-clear-history {
+    width: auto;
+    padding: 10px 18px;
+}
+
+.confirm-actions .btn-clear-history {
+    background: #ef4444;
+}
+
+.confirm-actions .btn-secondary:hover,
+.confirm-actions .btn-clear-history:hover {
+    transform: translateY(-1px);
+}
+
 /* Chat Window */
 .chat-window {
     flex: 1;

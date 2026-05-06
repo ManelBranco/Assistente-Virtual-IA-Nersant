@@ -72,11 +72,34 @@ function closeStatsModal() {
     }
 }
 
+function showClearHistoryConfirm() {
+    const modal = document.getElementById("confirmModal");
+    if (modal) {
+        modal.classList.add("active");
+    }
+}
+
+function closeConfirmModal() {
+    const modal = document.getElementById("confirmModal");
+    if (modal) {
+        modal.classList.remove("active");
+    }
+}
+
+async function confirmClearAllHistory() {
+    closeConfirmModal();
+    await clearAllHistory();
+}
+
 // Fechar modal se clicar fora do conteúdo (no fundo escuro)
 window.addEventListener("click", (event) => {
-    const modal = document.getElementById("statsModal");
-    if (event.target === modal) {            // Se clicou no fundo (não no conteúdo)
+    const statsModal = document.getElementById("statsModal");
+    const confirmModal = document.getElementById("confirmModal");
+    if (event.target === statsModal) {
         closeStatsModal();
+    }
+    if (event.target === confirmModal) {
+        closeConfirmModal();
     }
 });
 
@@ -146,19 +169,17 @@ async function deleteConversation(id, event) {
 
 // Limpar TODO o histórico (apagar todas as conversas)
 async function clearAllHistory() {
-    if (confirm("Isto vai apagar TODAS as conversas! Tens a certeza?")) {
-        await fetch("/api/clear-history", { method: "POST" });
-        const chat = document.getElementById("chat");
-        if (chat) {
-            chat.innerHTML = "";  // Limpar chat
-        }
-        // Reset das estatísticas
-        totalThinkingTime = 0;
-        messagesSentCount = 0;
-        conversationsCreated = 0;
-        updateStatsDisplay();
-        await loadHistory();  // Recarregar histórico (vazio)
+    await fetch("/api/clear-history", { method: "POST" });
+    const chat = document.getElementById("chat");
+    if (chat) {
+        chat.innerHTML = "";  // Limpar chat
     }
+    // Reset das estatísticas
+    totalThinkingTime = 0;
+    messagesSentCount = 0;
+    conversationsCreated = 0;
+    updateStatsDisplay();
+    await loadHistory();  // Recarregar histórico (vazio)
 }
 
 // Criar uma nova conversa
