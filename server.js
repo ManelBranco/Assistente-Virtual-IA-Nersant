@@ -28,20 +28,7 @@ let globalStats = {
     totalConversations: 0
 };
 
-// Tentar carregar estatísticas do ficheiro
-if (fs.existsSync("stats.json")) {
-    try {
-        const statsData = fs.readFileSync("stats.json", "utf-8");
-        globalStats = JSON.parse(statsData);
-    } catch (error) {
-        console.error("Erro ao ler stats.json:", error);
-    }
-}
 
-// Função para guardar estatísticas
-function saveStats() {
-    fs.writeFileSync("stats.json", JSON.stringify(globalStats, null, 2));
-}
 
 // Ao iniciar, carregar conversas anteriores do ficheiro conversas.json
 if (fs.existsSync("conversas.json")) {
