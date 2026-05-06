@@ -72,11 +72,23 @@ function closeStatsModal() {
     }
 }
 
-function showClearHistoryConfirm() {
+let confirmAction = null;
+
+function openConfirmModal({ title, subtitle, message, actionLabel, action }) {
     const modal = document.getElementById("confirmModal");
-    if (modal) {
-        modal.classList.add("active");
-    }
+    const titleEl = document.getElementById("confirmTitle");
+    const subtitleEl = document.getElementById("confirmSubtitle");
+    const messageEl = document.getElementById("confirmMessage");
+    const actionButton = document.getElementById("confirmActionButton");
+
+    if (!modal || !titleEl || !subtitleEl || !messageEl || !actionButton) return;
+
+    titleEl.textContent = title;
+    subtitleEl.textContent = subtitle;
+    messageEl.textContent = message;
+    actionButton.textContent = actionLabel;
+    confirmAction = action;
+    modal.classList.add("active");
 }
 
 function closeConfirmModal() {
@@ -84,11 +96,24 @@ function closeConfirmModal() {
     if (modal) {
         modal.classList.remove("active");
     }
+    confirmAction = null;
 }
 
-async function confirmClearAllHistory() {
+async function runConfirmAction() {
     closeConfirmModal();
-    await clearAllHistory();
+    if (typeof confirmAction === "function") {
+        await confirmAction();
+    }
+}
+
+function showClearHistoryConfirm() {
+    openConfirmModal({
+        title: "Remover histórico",
+        subtitle: "Esta ação vai apagar todas as conversas salvas.",
+        message: "Isto vai apagar TODAS as conversas! Tens a certeza?",
+        actionLabel: "Apagar",
+        action: clearAllHistory
+    });
 }
 
 // Fechar modal se clicar fora do conteúdo (no fundo escuro)
@@ -158,13 +183,18 @@ async function loadConversation(id) {
 }
 
 // Apagar uma conversa específica
-async function deleteConversation(id, event) {
+function deleteConversation(id, event) {
     event.stopPropagation();  // Evitar que o clique no botão também clique na conversa
-    
-    if (confirm("Tens a certeza que queres apagar esta conversa?")) {
-        await fetch(`/api/conversation/${id}`, { method: "DELETE" });  // Pedir ao servidor para apagar
-        await loadHistory();  // Recarregar histórico
-    }
+    openConfirmModal({
+        title: "Apagar conversa",
+        subtitle: "Esta conversa será removida permanentemente.",
+        message: "Tens a certeza que queres apagar esta conversa?",
+        actionLabel: "Apagar",
+        action: async () => {
+            await fetch(`/api/conversation/${id}`, { method: "DELETE" });
+            await loadHistory();
+        }
+    });
 }
 
 // Limpar TODO o histórico (apagar todas as conversas)

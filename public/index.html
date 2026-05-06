@@ -107,17 +107,17 @@
     <div class="confirm-content">
         <div class="confirm-header">
             <div>
-                <h3>Remover histórico</h3>
-                <p>Esta ação vai apagar todas as conversas salvas.</p>
+                <h3 id="confirmTitle">Remover histórico</h3>
+                <p id="confirmSubtitle">Esta ação vai apagar todas as conversas salvas.</p>
             </div>
             <button class="close-confirm" onclick="closeConfirmModal()">&times;</button>
         </div>
         <div class="confirm-body">
-            <p>Isto vai apagar TODAS as conversas! Tens a certeza?</p>
+            <p id="confirmMessage">Isto vai apagar TODAS as conversas! Tens a certeza?</p>
         </div>
         <div class="confirm-actions">
             <button class="btn-secondary" onclick="closeConfirmModal()">Cancelar</button>
-            <button class="btn-clear-history" onclick="confirmClearAllHistory()">Apagar</button>
+            <button id="confirmActionButton" class="btn-clear-history" onclick="runConfirmAction()">Apagar</button>
         </div>
     </div>
 </div>
