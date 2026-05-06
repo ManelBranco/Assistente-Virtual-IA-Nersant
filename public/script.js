@@ -3,16 +3,28 @@ let totalThinkingTime = 0;      // Tempo total que a IA "pensou"
 let messagesSentCount = 0;      // Número total de mensagens enviadas
 let conversationsCreated = 0;   // Número de conversas criadas
 let conversationHistory = [];    // Array com histórico de conversas
+let isSending = false;          // Evitar envios duplicados
 
 // Função para formatar o tempo de forma legível (segundos ou minutos:segundos)
 function formatThinkingTime(ms) {
-    const seconds = ms / 1000;
-    if (seconds < 60) {
-        return `${seconds.toFixed(2)}s`;
+    const totalSeconds = ms / 1000;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = (totalSeconds % 60).toFixed(2);
+    
+    if (minutes > 0) {
+        return `${minutes}:${seconds.padStart(5, '0')}s`;  // Ex: 1:23.45s
     }
-    const minutes = Math.floor(seconds / 60);
-    const remainder = (seconds % 60).toFixed(2).padStart(5, '0');
-    return `${minutes}:${remainder}s`;
+    return `${seconds}s`;  // Ex: 45.67s
+}
+
+// Formatar tempo para exibição (versão mais simples)
+function formatTimeDisplay(seconds) {
+    if (seconds >= 60) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = (seconds % 60).toFixed(2);
+        return `${minutes}:${remainingSeconds.padStart(5, '0')}s`;
+    }
+    return `${seconds.toFixed(2)}s`;
 }
 
 // Renderiza a resposta da IA em Markdown convertido para HTML
@@ -178,6 +190,9 @@ function filterConversations() {
 
 // Enviar mensagem para a IA
 async function send() {
+    // Evitar envios múltiplos
+    if (isSending) return;
+    
     const input = document.getElementById("input");
     const chat = document.getElementById("chat");
     const modelSelect = document.getElementById("model");
@@ -188,8 +203,10 @@ async function send() {
     const message = input.value.trim();
     if (!message) return;
 
-    //limpar a mensagem imediatamente
-      input.value = "";
+    isSending = true;
+    
+    // ⭐ LIMPAR O INPUT IMEDIATAMENTE (antes de qualquer outra ação)
+    input.value = "";
 
     // Mostrar mensagem do utilizador no chat
     const userMessageDiv = document.createElement("div");
@@ -201,18 +218,28 @@ async function send() {
     const loadingDiv = document.createElement("div");
     loadingDiv.className = "message bot";
     loadingDiv.id = "loading";
-    loadingDiv.innerHTML = `A pensar... <span id="timer">0.00</span>s`;
+    loadingDiv.innerHTML = `A pensar... <span id="timer">0.00s</span>`;
     chat.appendChild(loadingDiv);
     
     const startTime = Date.now();  // Marcar início
     
-    // Atualizar temporizador a cada 100ms
+    // Atualizar temporizador a cada 100ms com formato minutos:segundos
     const timerInterval = setInterval(() => {
         const elapsed = Date.now() - startTime;
-        const seconds = (elapsed / 1000).toFixed(2);
+        const totalSeconds = elapsed / 1000;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = (totalSeconds % 60).toFixed(2);
+        
+        let timeText;
+        if (minutes > 0) {
+            timeText = `${minutes}:${seconds.padStart(5, '0')}s`;
+        } else {
+            timeText = `${seconds}s`;
+        }
+        
         const timerElement = document.getElementById("timer");
         if (timerElement) {
-            timerElement.textContent = seconds;
+            timerElement.textContent = timeText;
         }
     }, 100);
     
@@ -228,21 +255,26 @@ async function send() {
     const data = await res.json();  // Receber resposta
     
     clearInterval(timerInterval);   // Parar temporizador
-    document.getElementById("loading").remove();  // Remover indicador de "A pensar..."
+    const loadingElement = document.getElementById("loading");
+    if (loadingElement) loadingElement.remove();  // Remover indicador de "A pensar..."
     
-    // Atualizar estatísticas
-    const totalSeconds = data.time ? (data.time / 1000).toFixed(2) : "0.00";
+    // Atualizar estatísticas com tempo formatado
     totalThinkingTime += data.time || 0;
     messagesSentCount += 1;
     updateStatsDisplay();
     
+    // Formatar tempo final para exibição
+    const totalSeconds = data.time ? (data.time / 1000) : 0;
+    const timeText = formatTimeDisplay(totalSeconds);
+    
     // Mostrar resposta da IA no chat com Markdown convertido para HTML
-    renderBotMessage(data.reply, `${totalSeconds}s`);
+    renderBotMessage(data.reply, timeText);
 
-    input.value = "";               // Limpar input
     chat.scrollTop = chat.scrollHeight;  // Scroll para o fundo
 
     await loadHistory();  // Recarregar histórico (para mostrar nova conversa na sidebar)
+    
+    isSending = false;
 }
 
 // Configurar eventos quando a página carregar
@@ -256,7 +288,7 @@ window.addEventListener("DOMContentLoaded", () => {
         searchInput.addEventListener("input", filterConversations);
     }
     
-    // NOVO: Enviar mensagem com tecla Enter
+    // Enviar mensagem com tecla Enter
     const messageInput = document.getElementById("input");
     if (messageInput) {
         messageInput.addEventListener("keypress", function(event) {
