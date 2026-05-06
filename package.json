@@ -12,7 +12,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "express": "^5.2.1",
-    "multer": "latest"
+    "express": "^5.2.1"
   }
 }

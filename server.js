@@ -2,7 +2,6 @@
 const express = require("express");  // Framework para criar o servidor web
 const fs = require("fs");            // Módulo para ler/escrever ficheiros
 const path = require("path");        // Módulo para manipular caminhos de ficheiros
-const multer = require("multer");    // Biblioteca para upload de ficheiros
 
 const app = express();               // Criar a aplicação Express
 app.use(express.json());             // Permitir que o servidor leia JSON no corpo das requisições
@@ -12,19 +11,6 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 app.use(express.static("public"));   // Servir ficheiros estáticos (CSS, JS, imagens)
-
-// Configuração do Multer para upload de ficheiros
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');  // Pasta onde guardar os ficheiros
-    },
-    filename: (req, file, cb) => {
-        const timestamp = Date.now();  // Timestamp para nome único
-        const originalName = file.originalname;  // Nome original do ficheiro
-        cb(null, `${timestamp}-${originalName}`);  // Nome único: timestamp-nomeoriginal
-    }
-});
-const upload = multer({ storage: storage });
 
 // Variáveis para guardar conversas em memória
 let conversations = [];              // Array com todas as conversas
@@ -42,11 +28,6 @@ let globalStats = {
     totalConversations: 0
 };
 
-// Função para guardar estatísticas no ficheiro
-function saveStats() {
-    fs.writeFileSync("stats.json", JSON.stringify(globalStats, null, 2));
-}
-
 
 
 // Ao iniciar, carregar conversas anteriores do ficheiro conversas.json
@@ -59,16 +40,6 @@ if (fs.existsSync("conversas.json")) {
         }
     } catch (error) {
         console.error("Erro ao ler conversas.json:", error);
-    }
-}
-
-// Carregar estatísticas globais do ficheiro stats.json
-if (fs.existsSync("stats.json")) {
-    try {
-        const statsData = fs.readFileSync("stats.json", "utf-8");
-        globalStats = JSON.parse(statsData);
-    } catch (error) {
-        console.error("Erro ao ler stats.json:", error);
     }
 }
 
@@ -151,41 +122,6 @@ app.post("/api/chat", async (req, res) => {
         console.error(error);
         res.json({ reply: "Erro no servidor", time: 0 });
     }
-});
-
-// Endpoint para upload de ficheiros
-app.post("/api/upload", upload.single("file"), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: "Nenhum ficheiro enviado" });
-    }
-
-    const fileInfo = {
-        originalName: req.file.originalname,
-        fileName: req.file.filename,
-        path: req.file.path,
-        size: req.file.size,
-        mimetype: req.file.mimetype
-    };
-
-    // Adicionar mensagem do utilizador com anexo à conversa atual
-    currentConversation.messages.push({
-        role: "user",
-        text: req.body.message || "",  // Mensagem opcional
-        attachment: fileInfo
-    });
-
-    // Guardar conversa atualizada no ficheiro JSON
-    const existingIndex = conversations.findIndex(c => c.id === currentConversation.id);
-    if (existingIndex !== -1) {
-        conversations[existingIndex] = JSON.parse(JSON.stringify(currentConversation));
-    } else {
-        if (currentConversation.messages.length > 0) {
-            conversations.push(JSON.parse(JSON.stringify(currentConversation)));
-        }
-    }
-    fs.writeFileSync("conversas.json", JSON.stringify(conversations, null, 2));
-
-    res.json({ ok: true, file: fileInfo });
 });
 
 // Endpoint para obter histórico de todas as conversas

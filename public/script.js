@@ -180,17 +180,14 @@ async function loadConversation(id) {
     
     // Mostrar todas as mensagens da conversa
     conversation.messages.forEach((msg) => {
+        const messageClass = msg.role === "user" ? "user" : "bot";
         if (msg.role === "bot") {
             const botHtml = marked.parse(msg.text || "");
             chat.innerHTML += `<div class="message bot">${botHtml}</div>`;
         } else {
             const userDiv = document.createElement("div");
             userDiv.className = "message user";
-            if (msg.attachment) {
-                userDiv.innerHTML = `${msg.text ? msg.text + "<br>" : ""}<em>Anexo: ${msg.attachment.originalName}</em>`;
-            } else {
-                userDiv.textContent = msg.text;
-            }
+            userDiv.textContent = msg.text;
             chat.appendChild(userDiv);
         }
     });
@@ -260,49 +257,6 @@ function filterConversations() {
         // Mostrar apenas conversas cujo título contenha o texto pesquisado
         conv.style.display = title.includes(query) ? "flex" : "none";
     });
-}
-
-// Função para lidar com upload de ficheiro
-async function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const input = document.getElementById("input");
-    const chat = document.getElementById("chat");
-    const message = input ? input.value.trim() : "";
-
-    // Criar FormData para enviar ficheiro
-    const formData = new FormData();
-    formData.append("file", file);
-    if (message) {
-        formData.append("message", message);
-        input.value = "";  // Limpar input se houver mensagem
-    }
-
-    try {
-        const res = await fetch("/api/upload", {
-            method: "POST",
-            body: formData
-        });
-
-        const data = await res.json();
-        if (data.ok) {
-            // Mostrar confirmação no chat
-            const confirmDiv = document.createElement("div");
-            confirmDiv.className = "message system";
-            confirmDiv.textContent = `Ficheiro "${data.file.originalName}" enviado com sucesso.`;
-            chat.appendChild(confirmDiv);
-            chat.scrollTop = chat.scrollHeight;
-
-            // Limpar input file para permitir reenvio
-            event.target.value = "";
-        } else {
-            alert("Erro ao enviar ficheiro: " + (data.error || "Erro desconhecido"));
-        }
-    } catch (error) {
-        console.error("Erro no upload:", error);
-        alert("Erro ao enviar ficheiro.");
-    }
 }
 
 // Enviar mensagem para a IA
@@ -415,16 +369,5 @@ window.addEventListener("DOMContentLoaded", () => {
                 send();                  // Chamar a função de enviar mensagem
             }
         });
-    }
-
-    // Configurar botão de anexar ficheiro
-    const attachBtn = document.getElementById("attachBtn");
-    const fileInput = document.getElementById("fileInput");
-    if (attachBtn && fileInput) {
-        attachBtn.addEventListener("click", () => {
-            fileInput.click();  // Acionar clique no input file
-        });
-
-        fileInput.addEventListener("change", handleFileUpload);
     }
 });
