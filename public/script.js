@@ -72,11 +72,45 @@ function closeStatsModal() {
     }
 }
 
+let confirmCallback = null;
+
+function showConfirmDialog(message, callback) {
+    const modal = document.getElementById("confirmModal");
+    const messageElement = document.getElementById("confirmMessage");
+    const confirmButton = document.getElementById("confirmOkButton");
+
+    if (!modal || !messageElement || !confirmButton) return;
+
+    messageElement.textContent = message;
+    confirmCallback = callback;
+    confirmButton.onclick = async () => {
+        closeConfirmDialog();
+        if (confirmCallback) {
+            await confirmCallback();
+            confirmCallback = null;
+        }
+    };
+
+    modal.classList.add("active");
+}
+
+function closeConfirmDialog() {
+    const modal = document.getElementById("confirmModal");
+    if (modal) {
+        modal.classList.remove("active");
+    }
+    confirmCallback = null;
+}
+
 // Fechar modal se clicar fora do conteúdo (no fundo escuro)
 window.addEventListener("click", (event) => {
-    const modal = document.getElementById("statsModal");
-    if (event.target === modal) {            // Se clicou no fundo (não no conteúdo)
+    const statsModal = document.getElementById("statsModal");
+    const confirmModal = document.getElementById("confirmModal");
+    if (event.target === statsModal) {
         closeStatsModal();
+    }
+    if (event.target === confirmModal) {
+        closeConfirmDialog();
     }
 });
 
@@ -137,16 +171,16 @@ async function loadConversation(id) {
 // Apagar uma conversa específica
 async function deleteConversation(id, event) {
     event.stopPropagation();  // Evitar que o clique no botão também clique na conversa
-    
-    if (confirm("Tens a certeza que queres apagar esta conversa?")) {
+
+    showConfirmDialog("Tens a certeza que queres apagar esta conversa?", async () => {
         await fetch(`/api/conversation/${id}`, { method: "DELETE" });  // Pedir ao servidor para apagar
         await loadHistory();  // Recarregar histórico
-    }
+    });
 }
 
 // Limpar TODO o histórico (apagar todas as conversas)
 async function clearAllHistory() {
-    if (confirm("Isto vai apagar TODAS as conversas! Tens a certeza?")) {
+    showConfirmDialog("Isto vai apagar TODAS as conversas! Tens a certeza?", async () => {
         await fetch("/api/clear-history", { method: "POST" });
         const chat = document.getElementById("chat");
         if (chat) {
@@ -158,7 +192,7 @@ async function clearAllHistory() {
         conversationsCreated = 0;
         updateStatsDisplay();
         await loadHistory();  // Recarregar histórico (vazio)
-    }
+    });
 }
 
 // Criar uma nova conversa
