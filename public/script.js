@@ -146,10 +146,18 @@ async function loadHistory() {
     conversationHistory.forEach((c) => {
         const convDiv = document.createElement("div");
         convDiv.className = "conv";
-        convDiv.innerHTML = `
-            <div class="conv-title">${c.title || "Conversa sem título"}</div>
-            <button class="conv-delete" onclick="deleteConversation(${c.id}, event)">X</button>
-        `;
+
+        const titleDiv = document.createElement("div");
+        titleDiv.className = "conv-title";
+        titleDiv.textContent = c.title || "Conversa sem título";
+
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "conv-delete";
+        deleteButton.textContent = "X";
+        deleteButton.addEventListener("click", (event) => deleteConversation(c.id, event));
+
+        convDiv.appendChild(titleDiv);
+        convDiv.appendChild(deleteButton);
         convDiv.onclick = () => loadConversation(c.id);  // Clicar na conversa carrega-a
         box.appendChild(convDiv);
     });
