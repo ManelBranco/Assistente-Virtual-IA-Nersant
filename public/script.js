@@ -35,7 +35,27 @@ function renderBotMessage(markdownText, metaText) {
 
     const messageDiv = document.createElement("div");
     messageDiv.className = "message bot";
-    const botHtml = marked.parse(markdownText || "");
+    
+    // Converter Markdown para HTML
+    let botHtml = marked.parse(markdownText || "");
+    
+    // Verificar se existem links na resposta
+    if (botHtml.includes('<a href=')) {
+        // Criar elemento temporário para manipular os links
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = botHtml;
+        
+        // Encontrar todos os links e adicionar target="_blank"
+        const links = tempDiv.querySelectorAll('a');
+        links.forEach(link => {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+        });
+        
+        // Atualizar o HTML com os links modificados
+        botHtml = tempDiv.innerHTML;
+    }
+    
     messageDiv.innerHTML = `
         ${botHtml}
         <div class="meta">${metaText}</div>
