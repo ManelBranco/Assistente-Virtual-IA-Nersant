@@ -34,7 +34,7 @@ function renderBotMessage(markdownText, metaText) {
     if (!chat) return;
 
     const messageDiv = document.createElement("div");
-    messageDiv.className = "message bot";
+    messageDiv.className = "message bot minha-classe";
     const botHtml = marked.parse(markdownText || "");
     messageDiv.innerHTML = `
         ${botHtml}
