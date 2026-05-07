@@ -34,12 +34,17 @@ function renderBotMessage(markdownText, metaText) {
     if (!chat) return;
 
     const messageDiv = document.createElement("div");
-    messageDiv.className = "message bot minha-classe";
+    messageDiv.className = "message bot";
     const botHtml = marked.parse(markdownText || "");
     messageDiv.innerHTML = `
         ${botHtml}
         <div class="meta">${metaText}</div>
     `;
+
+    // Fazer links abrirem em nova página
+    messageDiv.querySelectorAll('a').forEach(link => {
+        link.target = '_blank';
+    });
 
     chat.appendChild(messageDiv);
 }
