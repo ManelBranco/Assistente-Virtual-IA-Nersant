@@ -1,8 +1,6 @@
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\publish\AssistenteVirtualIA.exe
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\publish\web.config
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\publish\conversas.json
-D:\Estágio\IA\Assistente-Virtual-IA-Nersant\publish\package-lock.json
-D:\Estágio\IA\Assistente-Virtual-IA-Nersant\publish\package.json
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\publish\stats.json
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\publish\public\index.html
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\publish\public\script.js
