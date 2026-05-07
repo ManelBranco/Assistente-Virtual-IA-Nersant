@@ -1,0 +1,77 @@
+{
+  "Version": 1,
+  "Hash": "izmzHcZABj+tIHCCiM8/anKo9SU4mZdS9E7DXHnS9lU=",
+  "Source": "AssistenteVirtual",
+  "BasePath": "_content/AssistenteVirtual",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "AssistenteVirtual\\wwwroot",
+      "Source": "AssistenteVirtual",
+      "ContentRoot": "D:\\estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtual\\wwwroot\\",
+      "BasePath": "_content/AssistenteVirtual",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "D:\\estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtual\\wwwroot\\index.html",
+      "SourceId": "AssistenteVirtual",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtual\\wwwroot\\",
+      "BasePath": "_content/AssistenteVirtual",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\index.html"
+    },
+    {
+      "Identity": "D:\\estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtual\\wwwroot\\script.js",
+      "SourceId": "AssistenteVirtual",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtual\\wwwroot\\",
+      "BasePath": "_content/AssistenteVirtual",
+      "RelativePath": "script.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\script.js"
+    },
+    {
+      "Identity": "D:\\estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtual\\wwwroot\\style.css",
+      "SourceId": "AssistenteVirtual",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtual\\wwwroot\\",
+      "BasePath": "_content/AssistenteVirtual",
+      "RelativePath": "style.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\style.css"
+    }
+  ]
+}

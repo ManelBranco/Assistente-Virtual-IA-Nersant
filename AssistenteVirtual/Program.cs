@@ -14,33 +14,6 @@ app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// Models
-public class ChatRequest
-{
-    public string Message { get; set; } = "";
-    public string Model { get; set; } = "llama3.2:latest";
-}
-
-public class OllamaRequest
-{
-    public string Model { get; set; } = "";
-    public string Prompt { get; set; } = "";
-    public bool Stream { get; set; } = false;
-}
-
-public class Message
-{
-    public string Role { get; set; } = "";
-    public string Text { get; set; } = "";
-}
-
-public class Conversation
-{
-    public int Id { get; set; }
-    public string Title { get; set; } = "Nova conversa";
-    public List<Message> Messages { get; set; } = new();
-}
-
 // Variáveis globais
 var conversationsFile = "conversas.json";
 var conversations = new List<Conversation>();
@@ -81,7 +54,8 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         // Preparar prompt do sistema
         var systemPrompt = "Responde sempre em português de Portugal. Sê natural, direto e formal. " +
                           "Apenas na primeira mensagem apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. " +
-                          "Nas restantes mensagens não repitas a apresentação.";
+                          "Nas restantes mensagens não repitas a apresentação. " +
+                          "Apenas na primeira mensagem pergunta em que podes ajudar.";
 
         var fullPrompt = systemPrompt + "\n\nUtilizador: " + request.Message;
 
@@ -252,3 +226,33 @@ app.MapPost("/api/stats/update", async (HttpContext context) =>
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+// ##################################################
+// CLASSES (TUDO AQUI EMBAIXO - DEPOIS DO app.Run())
+// ##################################################
+
+public class ChatRequest
+{
+    public string Message { get; set; } = "";
+    public string Model { get; set; } = "llama3.2:latest";
+}
+
+public class OllamaRequest
+{
+    public string Model { get; set; } = "";
+    public string Prompt { get; set; } = "";
+    public bool Stream { get; set; } = false;
+}
+
+public class Message
+{
+    public string Role { get; set; } = "";
+    public string Text { get; set; } = "";
+}
+
+public class Conversation
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = "Nova conversa";
+    public List<Message> Messages { get; set; } = new();
+}
