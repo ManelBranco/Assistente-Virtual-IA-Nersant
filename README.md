@@ -31,6 +31,7 @@ dotnet publish AssistenteVirtualIA.csproj -c Release -o publish
 2. Configurar o site no IIS para apontar para a pasta `publish` (não para `publish/public`).
 3. Definir o binding do site para `ia.localhost` se esse for o nome que queres usar. O site pode manter esse nome no IIS, desde que tenhas o `hosts` configurado para apontar `ia.localhost` para `127.0.0.1`.
 4. Garantir que o `web.config` está presente e que o ASP.NET Core Hosting Bundle está instalado.
+5. Abrir no browser `ia.localhost`.
 
 > Se não estiver instalado, o IIS não conhece o módulo `AspNetCoreModuleV2` usado pelo `web.config` e dá erro 500.19.
 >
