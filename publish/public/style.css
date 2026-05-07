@@ -589,10 +589,24 @@ button:hover {
 
 .meta {
     font-size: 10px;
-    opacity: 0.6;
+    opacity: 0.8;
     margin-top: 8px;
     font-weight: 500;
     color: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.meta-separator {
+    color: rgba(71, 85, 105, 0.75);
+}
+
+.model-name {
+    font-size: 10px;
+    opacity: 0.85;
+    color: #475569;
+    white-space: nowrap;
 }
 
 .user .meta {

@@ -9,69 +9,7 @@
       },
       {
         "role": "bot",
-        "text": "Ol\u00E1! Como posso te ajudar hoje?"
-      },
-      {
-        "role": "user",
-        "text": "da me links"
-      },
-      {
-        "role": "bot",
-        "text": "Como posso ajudar? Que tipo de links procura?"
-      },
-      {
-        "role": "user",
-        "text": "da me os do google de onde tu es e da microsft"
-      },
-      {
-        "role": "bot",
-        "text": "Ol\u00E1, sou o assistente virtual de Intelig\u00EAncia Artificial da Nersant de Torres Novas. Em que posso ajudar?\n\nSegue abaixo a informa\u00E7\u00E3o solicitada:\n\n- **Google \u2013 Sede Global**  \n  1600 Amphitheatre Parkway,  \n  Mountain View, CA\u00A094043,  \n  Estados Unidos.\n\n- **Microsoft \u2013 Sede Global**  \n  1 Microsoft Way,  \n  Redmond, WA\u00A098052,  \n  Estados Unidos."
-      },
-      {
-        "role": "user",
-        "text": "ola"
-      },
-      {
-        "role": "bot",
-        "text": "Ol\u00E1! Como posso te ajudar hoje?"
-      }
-    ]
-  },
-  {
-    "id": 1,
-    "title": "ola",
-    "messages": [
-      {
-        "role": "user",
-        "text": "ola"
-      },
-      {
-        "role": "bot",
-        "text": "Ol\u00E1! Sou um assistente virtual de Intelig\u00EAncia Artificial da Nersant, estou aqui para ajudar com qualquer coisa que voc\u00EA precisar. Em que posso ajudar hoje?"
-      },
-      {
-        "role": "user",
-        "text": "ola"
-      },
-      {
-        "role": "bot",
         "text": "Ol\u00E1! Como posso ajudar hoje?"
-      },
-      {
-        "role": "user",
-        "text": "2\u002B1"
-      },
-      {
-        "role": "bot",
-        "text": "Sou o assistente virtual de Intelig\u00EAncia Artificial da Nersant de Torres Novas. A soma de 2\u202F\u002B\u202F1 \u00E9 3. Em que mais posso ajudar?"
-      },
-      {
-        "role": "user",
-        "text": "ola"
-      },
-      {
-        "role": "bot",
-        "text": "Ol\u00E1! Como posso te ajudar hoje?"
       }
     ]
   }

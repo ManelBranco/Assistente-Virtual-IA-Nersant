@@ -29,7 +29,7 @@ function formatTimeDisplay(seconds) {
 }
 
 // Renderiza a resposta da IA em Markdown convertido para HTML
-function renderBotMessage(markdownText, metaText) {
+function renderBotMessage(markdownText, metaText, modelName) {
     const chat = document.getElementById("chat");
     if (!chat) return;
 
@@ -55,10 +55,11 @@ function renderBotMessage(markdownText, metaText) {
         // Atualizar o HTML com os links modificados
         botHtml = tempDiv.innerHTML;
     }
-    
+
+    const modelMeta = modelName ? `<span class="meta-separator">•</span><span class="model-name">${modelName}</span>` : "";
     messageDiv.innerHTML = `
         ${botHtml}
-        <div class="meta">${metaText}</div>
+        <div class="meta">${metaText}${modelMeta}</div>
     `;
 
     chat.appendChild(messageDiv);
@@ -291,6 +292,7 @@ async function send() {
     if (!input || !chat || !modelSelect) return;
 
     const model = modelSelect.value;
+    const modelName = modelSelect.options[modelSelect.selectedIndex]?.text || model;
     const message = input.value.trim();
     if (!message) return;
 
@@ -359,7 +361,7 @@ async function send() {
     const timeText = formatTimeDisplay(totalSeconds);
     
     // Mostrar resposta da IA no chat com Markdown convertido para HTML
-    renderBotMessage(data.reply, timeText);
+    renderBotMessage(data.reply, timeText, modelName);
 
     chat.scrollTop = chat.scrollHeight;  // Scroll para o fundo
 
