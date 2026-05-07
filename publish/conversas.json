@@ -64,6 +64,14 @@
       {
         "role": "bot",
         "text": "Sou o assistente virtual de Intelig\u00EAncia Artificial da Nersant de Torres Novas. A soma de 2\u202F\u002B\u202F1 \u00E9 3. Em que mais posso ajudar?"
+      },
+      {
+        "role": "user",
+        "text": "ola"
+      },
+      {
+        "role": "bot",
+        "text": "Ol\u00E1! Como posso te ajudar hoje?"
       }
     ]
   }

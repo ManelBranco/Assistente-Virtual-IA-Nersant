@@ -10,9 +10,9 @@ builder.Services.AddCors();
 var app = builder.Build();
 app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
-var publicDir = Path.Combine(app.Environment.ContentRootPath, "public");
-var conversationsPath = Path.Combine(app.Environment.ContentRootPath, "conversas.json");
-var statsPath = Path.Combine(app.Environment.ContentRootPath, "stats.json");
+var publicDir = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var conversationsPath = Path.Combine(app.Environment.ContentRootPath, "data", "conversas.json");
+var statsPath = Path.Combine(app.Environment.ContentRootPath, "data", "stats.json");
 
 Directory.CreateDirectory(publicDir);
 
