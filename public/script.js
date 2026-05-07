@@ -41,11 +41,6 @@ function renderBotMessage(markdownText, metaText) {
         <div class="meta">${metaText}</div>
     `;
 
-    // Fazer links abrirem em nova página
-    messageDiv.querySelectorAll('a').forEach(link => {
-        link.target = '_blank';
-    });
-
     chat.appendChild(messageDiv);
 }
 
@@ -319,60 +314,38 @@ async function send() {
         }
     }, 100);
     
-    // Enviar mensagem ao servidor e tratar possíveis erros
-    let data = null;
-    try {
-        const res = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ message, model })
-        });
+    // Enviar mensagem ao servidor
+    const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message, model })
+    });
 
-        const text = await res.text();
-        let parsed = null;
-        try {
-            parsed = JSON.parse(text);
-        } catch (parseError) {
-            // Não JSON
-        }
+    const data = await res.json();  // Receber resposta
+    
+    clearInterval(timerInterval);   // Parar temporizador
+    const loadingElement = document.getElementById("loading");
+    if (loadingElement) loadingElement.remove();  // Remover indicador de "A pensar..."
+    
+    // Atualizar estatísticas com tempo formatado
+    totalThinkingTime += data.time || 0;
+    messagesSentCount += 1;
+    updateStatsDisplay();
+    
+    // Formatar tempo final para exibição
+    const totalSeconds = data.time ? (data.time / 1000) : 0;
+    const timeText = formatTimeDisplay(totalSeconds);
+    
+    // Mostrar resposta da IA no chat com Markdown convertido para HTML
+    renderBotMessage(data.reply, timeText);
 
-        if (!res.ok) {
-            const serverError = parsed?.error || parsed?.reply || text || `${res.status} ${res.statusText}`;
-            throw new Error(`Resposta do servidor: ${res.status} ${res.statusText} — ${serverError}`);
-        }
+    chat.scrollTop = chat.scrollHeight;  // Scroll para o fundo
 
-        data = parsed || {};
-
-        // Atualizar estatísticas com tempo formatado
-        totalThinkingTime += data.time || 0;
-        messagesSentCount += 1;
-        updateStatsDisplay();
-
-        // Formatar tempo final para exibição
-        const totalSeconds = data.time ? (data.time / 1000) : 0;
-        const timeText = formatTimeDisplay(totalSeconds);
-
-        // Mostrar resposta da IA no chat com Markdown convertido para HTML
-        renderBotMessage(data.reply || "Sem resposta do servidor.", timeText);
-
-        await loadHistory();  // Recarregar histórico (para mostrar nova conversa na sidebar)
-    } catch (error) {
-        console.error("Erro no envio:", error);
-
-        const errorDiv = document.createElement("div");
-        errorDiv.className = "message bot";
-        errorDiv.textContent = `Erro: ${error.message}`;
-        chat.appendChild(errorDiv);
-    } finally {
-        clearInterval(timerInterval);   // Parar temporizador
-        const loadingElement = document.getElementById("loading");
-        if (loadingElement) loadingElement.remove();  // Remover indicador de "A pensar..."
-
-        chat.scrollTop = chat.scrollHeight;  // Scroll para o fundo
-        isSending = false;
-    }
+    await loadHistory();  // Recarregar histórico (para mostrar nova conversa na sidebar)
+    
+    isSending = false;
 }
 
 // Configurar eventos quando a página carregar
