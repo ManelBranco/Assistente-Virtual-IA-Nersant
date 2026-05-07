@@ -86,7 +86,19 @@ app.post("/api/chat", async (req, res) => {
         });
 
         const data = await response.json();  // Resposta da IA
-    
+        console.log("Ollama response:", response.status, response.statusText, data);
+
+        if (!response.ok) {
+            throw new Error(`Ollama API falhou: ${response.status} ${response.statusText} ${JSON.stringify(data)}`);
+        }
+
+        const replyText = data.response
+            || data.output?.[0]
+            || data.choices?.[0]?.message?.content
+            || data.choices?.[0]?.text
+            || data.text
+            || "Sem resposta do modelo.";
+
         const end = Date.now();
         const duration = end - start;        // Calcular tempo de resposta
         console.log("Tempo calculado:", duration, "ms");
@@ -94,7 +106,7 @@ app.post("/api/chat", async (req, res) => {
         // Adicionar resposta do bot ao histórico
         currentConversation.messages.push({
             role: "bot",
-            text: data.response
+            text: replyText
         });
 
         // Guardar conversa atualizada no ficheiro JSON
@@ -114,7 +126,7 @@ app.post("/api/chat", async (req, res) => {
 
         // Devolver resposta ao frontend
         res.json({
-            reply: data.response,
+            reply: replyText,
             time: duration
         });
 
