@@ -8,19 +8,19 @@
     "net8.0": []
   },
   "packageFolders": {
-    "C:\\Users\\manel\\.nuget\\packages\\": {}
+    "C:\\Users\\neves\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Estágio\\IA\\Assistente-Virtual-IA-Nersant\\AssistenteVirtualIA.csproj",
+      "projectUniqueName": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtualIA.csproj",
       "projectName": "AssistenteVirtualIA",
-      "projectPath": "D:\\Estágio\\IA\\Assistente-Virtual-IA-Nersant\\AssistenteVirtualIA.csproj",
-      "packagesPath": "C:\\Users\\manel\\.nuget\\packages\\",
-      "outputPath": "D:\\Estágio\\IA\\Assistente-Virtual-IA-Nersant\\obj\\",
+      "projectPath": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtualIA.csproj",
+      "packagesPath": "C:\\Users\\neves\\.nuget\\packages\\",
+      "outputPath": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\manel\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\neves\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
