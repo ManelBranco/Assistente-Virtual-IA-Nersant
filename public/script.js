@@ -330,11 +330,20 @@ async function send() {
             body: JSON.stringify({ message, model })
         });
 
-        if (!res.ok) {
-            throw new Error(`Resposta do servidor: ${res.status} ${res.statusText}`);
+        const text = await res.text();
+        let parsed = null;
+        try {
+            parsed = JSON.parse(text);
+        } catch (parseError) {
+            // Não JSON
         }
 
-        data = await res.json();  // Receber resposta
+        if (!res.ok) {
+            const serverError = parsed?.error || parsed?.reply || text || `${res.status} ${res.statusText}`;
+            throw new Error(`Resposta do servidor: ${res.status} ${res.statusText} — ${serverError}`);
+        }
+
+        data = parsed || {};
 
         // Atualizar estatísticas com tempo formatado
         totalThinkingTime += data.time || 0;
@@ -354,7 +363,7 @@ async function send() {
 
         const errorDiv = document.createElement("div");
         errorDiv.className = "message bot";
-        errorDiv.textContent = "Erro: não foi possível obter resposta da IA. Verifique o servidor. ";
+        errorDiv.textContent = `Erro: ${error.message}`;
         chat.appendChild(errorDiv);
     } finally {
         clearInterval(timerInterval);   // Parar temporizador
