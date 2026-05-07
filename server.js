@@ -120,7 +120,7 @@ app.post("/api/chat", async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.json({ reply: "Erro no servidor", time: 0 });
+        res.status(500).json({ reply: "Erro no servidor", time: 0, error: error.message });
     }
 });
 
