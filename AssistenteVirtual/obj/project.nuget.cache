@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "dgSpecHash": "xwVITdOmcNQ=",
+  "success": true,
+  "projectFilePath": "D:\\estagio\\Assistente-Virtual-IA-Nersant\\AssistenteVirtual\\AssistenteVirtual.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.aspnetcore.hosting.abstractions\\2.3.0\\microsoft.aspnetcore.hosting.abstractions.2.3.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.aspnetcore.hosting.server.abstractions\\2.3.0\\microsoft.aspnetcore.hosting.server.abstractions.2.3.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.aspnetcore.http.abstractions\\2.3.0\\microsoft.aspnetcore.http.abstractions.2.3.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.aspnetcore.http.extensions\\2.3.0\\microsoft.aspnetcore.http.extensions.2.3.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.aspnetcore.http.features\\2.3.0\\microsoft.aspnetcore.http.features.2.3.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.aspnetcore.staticfiles\\2.3.9\\microsoft.aspnetcore.staticfiles.2.3.9.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\8.0.0\\microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.2\\microsoft.extensions.dependencyinjection.abstractions.8.0.2.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.extensions.diagnostics.abstractions\\8.0.1\\microsoft.extensions.diagnostics.abstractions.8.0.1.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.extensions.fileproviders.abstractions\\8.0.0\\microsoft.extensions.fileproviders.abstractions.8.0.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.extensions.hosting.abstractions\\8.0.1\\microsoft.extensions.hosting.abstractions.8.0.1.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.2\\microsoft.extensions.logging.abstractions.8.0.2.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.extensions.options\\8.0.2\\microsoft.extensions.options.8.0.2.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.extensions.primitives\\8.0.0\\microsoft.extensions.primitives.8.0.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.extensions.webencoders\\8.0.11\\microsoft.extensions.webencoders.8.0.11.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\microsoft.net.http.headers\\2.3.0\\microsoft.net.http.headers.2.3.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\system.buffers\\4.6.0\\system.buffers.4.6.0.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\system.io.pipelines\\10.0.7\\system.io.pipelines.10.0.7.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\system.text.encodings.web\\10.0.7\\system.text.encodings.web.10.0.7.nupkg.sha512",
+    "C:\\Users\\neves\\.nuget\\packages\\system.text.json\\10.0.7\\system.text.json.10.0.7.nupkg.sha512"
+  ],
+  "logs": []
+}

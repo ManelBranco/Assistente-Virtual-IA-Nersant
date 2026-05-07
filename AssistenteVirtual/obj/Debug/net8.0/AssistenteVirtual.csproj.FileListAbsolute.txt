@@ -1,0 +1,7 @@
+D:\estagio\Assistente-Virtual-IA-Nersant\AssistenteVirtual\obj\Debug\net8.0\AssistenteVirtual.csproj.AssemblyReference.cache
+D:\estagio\Assistente-Virtual-IA-Nersant\AssistenteVirtual\obj\Debug\net8.0\AssistenteVirtual.GeneratedMSBuildEditorConfig.editorconfig
+D:\estagio\Assistente-Virtual-IA-Nersant\AssistenteVirtual\obj\Debug\net8.0\AssistenteVirtual.AssemblyInfoInputs.cache
+D:\estagio\Assistente-Virtual-IA-Nersant\AssistenteVirtual\obj\Debug\net8.0\AssistenteVirtual.AssemblyInfo.cs
+D:\estagio\Assistente-Virtual-IA-Nersant\AssistenteVirtual\obj\Debug\net8.0\AssistenteVirtual.csproj.CoreCompileInputs.cache
+D:\estagio\Assistente-Virtual-IA-Nersant\AssistenteVirtual\obj\Debug\net8.0\AssistenteVirtual.MvcApplicationPartsAssemblyInfo.cache
+D:\estagio\Assistente-Virtual-IA-Nersant\AssistenteVirtual\obj\Debug\net8.0\AssistenteVirtual.sourcelink.json
