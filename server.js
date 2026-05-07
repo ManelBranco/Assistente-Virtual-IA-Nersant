@@ -129,6 +129,10 @@ app.get("/api/history", (req, res) => {
     res.json(conversations);
 });
 
+function saveStats() {
+    fs.writeFileSync("stats.json", JSON.stringify(globalStats, null, 2));
+}
+
 // Endpoint para criar uma nova conversa
 app.post("/api/new-chat", (req, res) => {
     // Guardar conversa atual se tiver mensagens
