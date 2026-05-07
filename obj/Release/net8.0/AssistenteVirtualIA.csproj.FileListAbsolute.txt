@@ -1,7 +1,5 @@
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\bin\Release\net8.0\web.config
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\bin\Release\net8.0\conversas.json
-D:\Estágio\IA\Assistente-Virtual-IA-Nersant\bin\Release\net8.0\package-lock.json
-D:\Estágio\IA\Assistente-Virtual-IA-Nersant\bin\Release\net8.0\package.json
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\bin\Release\net8.0\stats.json
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\bin\Release\net8.0\AssistenteVirtualIA.exe
 D:\Estágio\IA\Assistente-Virtual-IA-Nersant\bin\Release\net8.0\AssistenteVirtualIA.deps.json
