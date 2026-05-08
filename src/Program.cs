@@ -4,6 +4,7 @@ using System.Threading;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
+// Configuração do servidor Web e permissões CORS para permitir pedidos do navegador.
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors();
 
@@ -14,8 +15,11 @@ var publicDir = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var conversationsPath = Path.Combine(app.Environment.ContentRootPath, "data", "conversas.json");
 var statsPath = Path.Combine(app.Environment.ContentRootPath, "data", "stats.json");
 
+// Garantir que as pastas necessárias existem antes de gravar ficheiros.
 Directory.CreateDirectory(publicDir);
+Directory.CreateDirectory(Path.GetDirectoryName(conversationsPath)!);
 
+// Configuração do JSON para garantir nomes em camelCase e boa leitura no ficheiro.
 var jsonOptions = new JsonSerializerOptions
 {
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -23,9 +27,11 @@ var jsonOptions = new JsonSerializerOptions
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
 };
 
+// Inicializa o armazenamento de conversas e estatísticas.
 var store = new DataStore(conversationsPath, statsPath, jsonOptions);
 await store.InitializeAsync();
 
+// Configurar ficheiros estáticos para servir o site em wwwroot.
 app.UseDefaultFiles(new DefaultFilesOptions
 {
     FileProvider = new PhysicalFileProvider(publicDir),
@@ -39,20 +45,24 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = string.Empty
 });
 
+// Servir a página principal index.html quando o navegador aceitar a rota raiz.
 app.MapGet("/", async context =>
 {
     context.Response.ContentType = "text/html; charset=utf-8";
     await context.Response.SendFileAsync(Path.Combine(publicDir, "index.html"));
 });
 
+// Rota para obter o histórico completo de conversas guardadas.
 app.MapGet("/api/history", () => Results.Json(store.Conversations, jsonOptions));
 
+// Rota para obter uma conversa específica pelo seu ID.
 app.MapGet("/api/conversation/{id:int}", (int id) =>
 {
     var conversation = store.Conversations.FirstOrDefault(c => c.Id == id);
     return conversation is not null ? Results.Json(conversation, jsonOptions) : Results.NotFound(new { error = "Conversa não encontrada" });
 });
 
+// Inicia uma nova conversa e garante que a conversa anterior fica guardada.
 app.MapPost("/api/new-chat", async () =>
 {
     await store.SaveCurrentConversationIfNeededAsync();
@@ -65,12 +75,14 @@ app.MapPost("/api/new-chat", async () =>
 
 app.MapDelete("/api/conversation/{id:int}", async (int id) =>
 {
+    // Apaga a conversa com o ID fornecido.
     var removed = await store.RemoveConversationAsync(id);
     if (!removed)
     {
         return Results.NotFound(new { error = "Conversa não encontrada" });
     }
 
+    // Se a conversa apagada era a conversa atual, criar uma nova conversa vazia.
     if (store.CurrentConversation.Id == id)
     {
         store.CurrentId++;
@@ -81,6 +93,7 @@ app.MapDelete("/api/conversation/{id:int}", async (int id) =>
     return Results.Json(new { ok = true });
 });
 
+// Apaga todo o histórico de conversas e reinicia as estatísticas.
 app.MapPost("/api/clear-history", async () =>
 {
     await store.ClearHistoryAsync();
@@ -103,6 +116,7 @@ app.MapPost("/api/stats/update", async (StatsUpdateRequest request) =>
     return Results.Json(new { ok = true });
 });
 
+// Rota de chat: recebe a mensagem do utilizador, envia ao modelo IA e devolve a resposta.
 app.MapPost("/api/chat", async (ChatRequest request) =>
 {
     if (string.IsNullOrWhiteSpace(request.Message) || string.IsNullOrWhiteSpace(request.Model))
@@ -110,8 +124,10 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         return Results.BadRequest(new { reply = "Pedido inválido", time = 0 });
     }
 
+    // Guardar a mensagem do utilizador na conversa atual.
     store.CurrentConversation.Messages.Add(new Message("user", request.Message));
 
+    // O título da conversa é definido com a primeira mensagem enviada.
     if (store.CurrentConversation.Messages.Count == 1)
     {
         var title = request.Message.Length <= 30 ? request.Message.Trim() : request.Message.Substring(0, 30).Trim() + "...";
@@ -125,7 +141,6 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
 
     try
     {
-
         using var httpClient = new HttpClient();
         var response = await httpClient.PostAsJsonAsync(
             "http://localhost:11434/api/generate",
@@ -156,6 +171,7 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
 
 app.Run();
 
+// Extrai o texto de resposta da API da IA, aceitando vários formatos de JSON possíveis.
 static string ExtractReplyText(string json)
 {
     try
@@ -167,7 +183,6 @@ static string ExtractReplyText(string json)
         {
             return responseProp.GetString() ?? string.Empty;
         }
-
 
         if (root.TryGetProperty("text", out var textProp) && textProp.ValueKind == JsonValueKind.String)
         {
@@ -195,7 +210,6 @@ static string ExtractReplyText(string json)
             }
 
             if (firstChoice.TryGetProperty("text", out var textChoiceProp) && textChoiceProp.ValueKind == JsonValueKind.String)
-
             {
                 return textChoiceProp.GetString() ?? string.Empty;
             }
@@ -209,6 +223,7 @@ static string ExtractReplyText(string json)
     return string.Empty;
 }
 
+// Classe que gerencia o armazenamento de conversas e estatísticas em ficheiros JSON.
 internal class DataStore
 {
     private readonly string _conversationsPath;
@@ -228,6 +243,7 @@ internal class DataStore
         _jsonOptions = jsonOptions;
     }
 
+    // Inicializa o DataStore: lê ficheiros existentes ou cria valores iniciais e garante que o JSON está gravado.
     public async Task InitializeAsync()
     {
         await _locker.WaitAsync();
@@ -264,6 +280,8 @@ internal class DataStore
         }
     }
 
+    // Guarda a conversa atual apenas se já existirem mensagens nela.
+    // Isto evita criar conversas vazias sem conteúdo.
     public async Task SaveCurrentConversationIfNeededAsync()
     {
         await _locker.WaitAsync();
@@ -289,6 +307,7 @@ internal class DataStore
         }
     }
 
+    // Guarda a conversa atual no histórico, criando um novo registo se necessário.
     public async Task SaveCurrentConversationAsync()
     {
         await _locker.WaitAsync();
@@ -314,6 +333,7 @@ internal class DataStore
         }
     }
 
+    // Remove uma conversa do histórico pelo ID.
     public async Task<bool> RemoveConversationAsync(int id)
     {
         await _locker.WaitAsync();
@@ -330,6 +350,7 @@ internal class DataStore
         }
     }
 
+    // Limpa todo o histórico de conversas e zera as estatísticas.
     public async Task ClearHistoryAsync()
     {
         await _locker.WaitAsync();
@@ -348,6 +369,7 @@ internal class DataStore
         }
     }
 
+    // Guarda o ficheiro de conversas no disco.
     public async Task SaveConversationsAsync()
     {
         await _locker.WaitAsync();
@@ -361,6 +383,7 @@ internal class DataStore
         }
     }
 
+    // Guarda o ficheiro de estatísticas no disco.
     public async Task SaveStatsAsync()
     {
         await _locker.WaitAsync();
@@ -384,6 +407,7 @@ internal class DataStore
         await File.WriteAllTextAsync(_statsPath, JsonSerializer.Serialize(Stats, _jsonOptions));
     }
 
+    // Cria uma cópia profunda de uma conversa para evitar alterações acidentais no estado original.
     private static Conversation CloneConversation(Conversation conversation)
     {
         return new Conversation(conversation.Id, conversation.Title, conversation.Messages.Select(m => new Message(m.Role, m.Text)).ToList());

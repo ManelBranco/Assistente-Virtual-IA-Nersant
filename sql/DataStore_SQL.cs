@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+namespace AssistenteVirtualIA.Sql;
+
 internal class AssistenteDbContext : DbContext
 {
     public DbSet<Conversation> Conversations { get; set; }
