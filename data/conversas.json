@@ -34,5 +34,49 @@
         "text": "Ol\u00E1, sou um assistente virtual de Intelig\u00EAncia Artificial da Nersant de Torres Novas. Como posso te ajudar hoje?"
       }
     ]
+  },
+  {
+    "id": 2,
+    "title": "1\u002B1",
+    "messages": [
+      {
+        "role": "user",
+        "text": "1\u002B1"
+      },
+      {
+        "role": "bot",
+        "text": "Ol\u00E1, sou o assistente virtual de Intelig\u00EAncia Artificial da Nersant de Torres Novas. Como posso ajudar voc\u00EA hoje?"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "1\u002B1",
+    "messages": [
+      {
+        "role": "user",
+        "text": "1\u002B1"
+      },
+      {
+        "role": "bot",
+        "text": "Ol\u00E1! Sou o assistente virtual de Intelig\u00EAncia Artificial da Nersant, baseado em Torres Novas. Posso ajudar com uma ampla variedade de perguntas e tarefas. Em que posso ajudar hoje?"
+      },
+      {
+        "role": "user",
+        "text": "1\u002B1"
+      },
+      {
+        "role": "bot",
+        "text": "Ol\u00E1! A soma de 1 \u002B 1 \u00E9 igual a 2. Caso tenha outras d\u00FAvidas ou precisem de ajuda com algo mais espec\u00EDfico, estou \u00E0 disposi\u00E7\u00E3o para assist\u00EAncia."
+      },
+      {
+        "role": "user",
+        "text": "1\u002B1"
+      },
+      {
+        "role": "bot",
+        "text": "Ol\u00E1! A soma de 1 \u002B 1 \u00E9 igual a 2. Se precisar de mais ajuda com algo espec\u00EDfico, estou \u00E0 disposi\u00E7\u00E3o para ajudar."
+      }
+    ]
   }
 ]

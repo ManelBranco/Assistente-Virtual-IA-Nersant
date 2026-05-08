@@ -1,8 +1,11 @@
+console.log("script.js carregado");
+
 // Variáveis globais para estatísticas
 let totalThinkingTime = 0;      // Tempo total que a IA "pensou"
 let messagesSentCount = 0;      // Número total de mensagens enviadas
 let conversationsCreated = 0;   // Número de conversas criadas
 let conversationHistory = [];    // Array com histórico de conversas
+let activeConversationId = null; // ID da conversa ativa
 let isSending = false;          // Evitar envios duplicados
 let isCreatingChat = false;     // Evitar cliques duplicados em nova conversa
 
@@ -191,6 +194,7 @@ async function loadHistory() {
 
 // Carregar uma conversa específica pelo ID
 async function loadConversation(id) {
+    activeConversationId = id;
     const res = await fetch(`/api/conversation/${id}`);
     const conversation = await res.json();
     
@@ -248,11 +252,24 @@ async function clearAllHistory() {
 
 // Criar uma nova conversa
 async function newChat() {
-    if (isCreatingChat) return;
+    if (isCreatingChat) {
+        console.warn("newChat já em progresso, retorno imediato");
+        return;
+    }
     isCreatingChat = true;
 
     try {
-        await fetch("/api/new-chat", { method: "POST" });
+        console.log("newChat: a pedir nova conversa ao servidor...");
+        const res = await fetch("/api/new-chat", { method: "POST" });
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error("newChat: falha ao criar conversa", res.status, errorText);
+            throw new Error("newChat failed");
+        }
+        const data = await res.json();
+        console.log("newChat: resposta do servidor", data);
+        activeConversationId = data.id ?? null;
+        console.log("newChat: activeConversationId definido para", activeConversationId);
 
         const chat = document.getElementById("chat");
         if (chat) chat.innerHTML = "";  // Limpar chat
@@ -296,6 +313,15 @@ async function send() {
     const message = input.value.trim();
     if (!message) return;
 
+    console.log("send() start, activeConversationId:", activeConversationId);
+
+    // Se ainda não houver conversa ativa, criar uma automaticamente.
+    if (!activeConversationId) {
+        console.log("send() detectou activeConversationId vazio, vai chamar newChat()");
+        await newChat();
+        console.log("send() depois de newChat, activeConversationId:", activeConversationId);
+    }
+
     isSending = true;
     
     // ⭐ LIMPAR O INPUT IMEDIATAMENTE (antes de qualquer outra ação)
@@ -307,18 +333,12 @@ async function send() {
     userMessageDiv.textContent = message;
     chat.appendChild(userMessageDiv);
     
-    // Scroll automático após a mensagem do utilizador
-    chat.scrollTop = chat.scrollHeight;
-    
     // Mostrar indicador de "A pensar..." com temporizador
     const loadingDiv = document.createElement("div");
     loadingDiv.className = "message bot";
     loadingDiv.id = "loading";
     loadingDiv.innerHTML = `A pensar... <span id="timer">0.00s</span>`;
     chat.appendChild(loadingDiv);
-    
-    // Scroll automático após o indicador de "A pensar..."
-    chat.scrollTop = chat.scrollHeight;
     
     const startTime = Date.now();  // Marcar início
     
@@ -342,21 +362,53 @@ async function send() {
         }
     }, 100);
     
+    // ⭐ DEBUG: Mostrar que estamos a enviar a mensagem ao servidor
+    console.log("=== ENVIANDO MENSAGEM ===");
+    console.log("message:", message);
+    console.log("model:", model);
+    console.log("conversationId antes:", activeConversationId);
+
     // Enviar mensagem ao servidor
     const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ message, model })
+        body: JSON.stringify({ message, model, conversationId: activeConversationId })
     });
 
     const data = await res.json();  // Receber resposta
     
+    // ⭐ DEBUG: Mostrar tudo que vem do servidor
+    console.log("=== RESPOSTA DO SERVIDOR ===");
+    console.log(data);
+    
+    // ⭐ Armazenar o conversationId da resposta para manter contexto
+    if (typeof data.conversationId !== "undefined" && data.conversationId !== null) {
+        activeConversationId = data.conversationId;
+        console.log("✅ activeConversationId atualizado para:", activeConversationId);
+    }
+    
     clearInterval(timerInterval);   // Parar temporizador
     const loadingElement = document.getElementById("loading");
     if (loadingElement) loadingElement.remove();  // Remover indicador de "A pensar..."
-    
+
+    if (data.context) {
+        console.group("📋 IA Context");
+        console.log("conversationId:", data.conversationId);
+        console.log("modelUsed:", data.usedModel || model);
+        console.log("usedEndpoint:", data.usedEndpoint);
+        console.log("prompt enviado ao modelo:");
+        console.log(data.context);
+        console.groupEnd();
+    } else {
+        console.warn("⚠️ Nenhum context na resposta - backend pode não estar retornando corretamente");
+    }
+
+    if (data.error) {
+        console.error("Erro da API do Ollama:", data.error);
+    }
+
     // Atualizar estatísticas com tempo formatado
     totalThinkingTime += data.time || 0;
     messagesSentCount += 1;
@@ -367,7 +419,8 @@ async function send() {
     const timeText = formatTimeDisplay(totalSeconds);
     
     // Mostrar resposta da IA no chat com Markdown convertido para HTML
-    renderBotMessage(data.reply, timeText, modelName);
+    const replyText = data.reply || (data.error ? `Erro: ${data.error}` : "Resposta vazia");
+    renderBotMessage(replyText, timeText, modelName);
 
     chat.scrollTop = chat.scrollHeight;  // Scroll para o fundo
 
@@ -378,6 +431,7 @@ async function send() {
 
 // Configurar eventos quando a página carregar
 window.addEventListener("DOMContentLoaded", () => {
+    console.log("DOMContentLoaded do script.js executado");
     loadHistory();
     updateStatsDisplay();
     

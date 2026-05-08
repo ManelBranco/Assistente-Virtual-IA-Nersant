@@ -7,5 +7,7 @@
 
   <ItemGroup>
     <None Remove="publish\**\*" />
+    <Compile Remove="sql\**\*.cs" />
+    <Compile Remove="sql/**/*.cs" />
   </ItemGroup>
 </Project>

@@ -33,7 +33,7 @@ var store = new DataStore(conversationsPath, statsPath, jsonOptions);
 await store.InitializeAsync();
 
 // System prompt que será introduzido apenas na primeira mensagem
-const string SYSTEM_PROMPT = @"Responde sempre em português de Portugal. Sê natural, direto e formal. Apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Na primeira mensagem pergunta em que podes ajudar.";
+const string SYSTEM_PROMPT = @"Responde sempre em português de Portugal. Sê natural, direto e formal. Apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Usa sempre o histórico da conversa para responder, especialmente quando o utilizador pede uma continuação de um cálculo ou sequência. Se o utilizador disser olá, pergunta em que podes ajudar. Se o utilizador fizer uma sequência de cálculos como 'agora adiciona X', usa o resultado numérico anterior sem pedir outro valor.";
 
 // Carregar ou criar o context prompt editável
 string contextPrompt = "";
@@ -84,9 +84,14 @@ app.MapPost("/api/new-chat", async () =>
     await store.SaveCurrentConversationIfNeededAsync();
     store.Stats.TotalConversations++;
     store.CurrentId++;
-    store.CurrentConversation = new Conversation(store.CurrentId, "Nova conversa", new List<Message>());
+    var newConversation = new Conversation(store.CurrentId, "Nova conversa", new List<Message>());
+    store.CurrentConversation = newConversation;
+    
+    // ⭐ IMPORTANTE: Adicionar a nova conversa à lista de conversas
+    store.Conversations.Add(newConversation);
+    
     await store.SaveStatsAsync();
-    return Results.Json(new { ok = true });
+    return Results.Json(new { ok = true, id = store.CurrentConversation.Id });
 });
 
 app.MapDelete("/api/conversation/{id:int}", async (int id) =>
@@ -163,59 +168,80 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         return Results.BadRequest(new { reply = "Pedido inválido", time = 0 });
     }
 
-    // Guardar a mensagem do utilizador na conversa atual.
-    store.CurrentConversation.Messages.Add(new Message("user", request.Message));
+    var conversation = store.CurrentConversation;
+    if (request.ConversationId.HasValue)
+    {
+        var requestedId = request.ConversationId.Value;
+        var existingConversation = store.Conversations.FirstOrDefault(c => c.Id == requestedId);
+        if (existingConversation is not null)
+        {
+            conversation = existingConversation;
+        }
+    }
+
+    if (conversation.Id != store.CurrentConversation.Id)
+    {
+        store.CurrentConversation = conversation;
+    }
+
+    // Guardar a mensagem do utilizador na conversa correta.
+    conversation.Messages.Add(new Message("user", request.Message));
 
     // O título da conversa é definido com a primeira mensagem enviada.
-    if (store.CurrentConversation.Messages.Count == 1)
+    if (conversation.Messages.Count == 1)
     {
         var title = request.Message.Length <= 30 ? request.Message.Trim() : request.Message.Substring(0, 30).Trim() + "...";
-        store.CurrentConversation = store.CurrentConversation with { Title = title };
+        conversation = conversation with { Title = title };
+        store.CurrentConversation = conversation;
     }
 
-    // Construir o prompt: sistema + contexto (apenas na primeira mensagem) + histórico de conversas
-    string fullPrompt;
-    
-    if (store.CurrentConversation.Messages.Count == 2) // Contagem é 2 porque já adicionámos a mensagem do utilizador
-    {
-        // Primeira mensagem: incluir sistema e contexto
-        fullPrompt = $"{SYSTEM_PROMPT}\n\n{contextPrompt}\n\nUtilizador: {request.Message}";
-    }
-    else
-    {
-        // Mensagens subsequentes: apenas a mensagem do utilizador
-        fullPrompt = $"Utilizador: {request.Message}";
-    }
+    var conversationHistory = string.Join("\n", conversation.Messages.Select(m => m.Role == "user" ? $"Utilizador: {m.Text}" : $"Assistente: {m.Text}"));
+    var fullPrompt = $"{SYSTEM_PROMPT}\n\n{contextPrompt}\n\n{conversationHistory}\nAssistente:";
 
     var start = DateTime.UtcNow;
 
     try
     {
         using var httpClient = new HttpClient();
+
+        string usedModel = request.Model;
+        string usedEndpoint = "v1/completions";
+
         var response = await httpClient.PostAsJsonAsync(
-            "http://localhost:11434/api/generate",
-            new { model = request.Model, prompt = fullPrompt, stream = false }
+            "http://localhost:11434/v1/completions",
+            new { model = request.Model, prompt = fullPrompt, max_tokens = 512, temperature = 0.2 }
         );
 
         var content = await response.Content.ReadAsStringAsync();
+        var lowerContent = content.ToLowerInvariant();
+
+        if (!response.IsSuccessStatusCode && (lowerContent.Contains("not found") || lowerContent.Contains("invalid model") || lowerContent.Contains("invalid request") || lowerContent.Contains("unsupported") || lowerContent.Contains("internal server error")))
+        {
+            usedEndpoint = "api/generate";
+            response = await httpClient.PostAsJsonAsync(
+                "http://localhost:11434/api/generate",
+                new { model = request.Model, prompt = fullPrompt, stream = false }
+            );
+            content = await response.Content.ReadAsStringAsync();
+        }
 
         if (!response.IsSuccessStatusCode)
         {
-            return Results.Json(new { reply = "Erro na API do Ollama", time = 0, error = content }, statusCode: 500, options: jsonOptions);
+            return Results.Json(new { reply = "Erro na API do Ollama", time = 0, error = content, context = fullPrompt, conversationId = conversation.Id, usedModel, usedEndpoint }, statusCode: 500, options: jsonOptions);
         }
 
         var replyText = ExtractReplyText(content);
         var end = DateTime.UtcNow;
         var duration = (long)(end - start).TotalMilliseconds;
 
-        store.CurrentConversation.Messages.Add(new Message("bot", replyText));
+        conversation.Messages.Add(new Message("bot", replyText));
         await store.SaveCurrentConversationAsync();
 
-        return Results.Json(new ChatResponse(replyText, duration), jsonOptions);
+        return Results.Json(new { reply = replyText, time = duration, context = fullPrompt, conversationId = conversation.Id, usedModel, usedEndpoint }, jsonOptions);
     }
     catch (Exception ex)
     {
-        return Results.Json(new { reply = "Erro no servidor", time = 0, error = ex.Message }, statusCode: 500, options: jsonOptions);
+        return Results.Json(new { reply = "Erro no servidor", time = 0, error = ex.Message, context = fullPrompt, conversationId = conversation.Id }, statusCode: 500, options: jsonOptions);
     }
 });
 
@@ -466,7 +492,7 @@ internal class DataStore
 
 internal sealed record Conversation(int Id, string Title, List<Message> Messages);
 internal sealed record Message(string Role, string Text);
-internal sealed record ChatRequest(string Message, string Model);
+internal sealed record ChatRequest(string Message, string Model, int? ConversationId = null);
 internal sealed record ChatResponse(string Reply, long Time);
 internal sealed record StatsUpdateRequest(long? ThinkingTime, int? MessagesSent);
 internal sealed record ContextPromptRequest(string ContextPrompt);
