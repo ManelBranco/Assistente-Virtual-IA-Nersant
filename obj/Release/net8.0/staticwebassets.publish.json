@@ -1,11 +1,77 @@
 {
   "Version": 1,
-  "Hash": "dBC1nQELoGCR022EwenSO7vUq1V0u3V4b0tsKBB0o4w=",
+  "Hash": "ZtzmsMagcLmE6amyttb9zMW/BW6hDRjF6Z9ubQS3TC0=",
   "Source": "AssistenteVirtualIA",
   "BasePath": "_content/AssistenteVirtualIA",
   "Mode": "Default",
   "ManifestType": "Publish",
   "ReferencedProjectsConfiguration": [],
-  "DiscoveryPatterns": [],
-  "Assets": []
+  "DiscoveryPatterns": [
+    {
+      "Name": "AssistenteVirtualIA\\wwwroot",
+      "Source": "AssistenteVirtualIA",
+      "ContentRoot": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\wwwroot\\",
+      "BasePath": "_content/AssistenteVirtualIA",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\wwwroot\\index.html",
+      "SourceId": "AssistenteVirtualIA",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\wwwroot\\",
+      "BasePath": "_content/AssistenteVirtualIA",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\index.html"
+    },
+    {
+      "Identity": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\wwwroot\\script.js",
+      "SourceId": "AssistenteVirtualIA",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\wwwroot\\",
+      "BasePath": "_content/AssistenteVirtualIA",
+      "RelativePath": "script.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\script.js"
+    },
+    {
+      "Identity": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\wwwroot\\style.css",
+      "SourceId": "AssistenteVirtualIA",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Estagio\\Assistente-Virtual-IA-Nersant\\wwwroot\\",
+      "BasePath": "_content/AssistenteVirtualIA",
+      "RelativePath": "style.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\style.css"
+    }
+  ]
 }

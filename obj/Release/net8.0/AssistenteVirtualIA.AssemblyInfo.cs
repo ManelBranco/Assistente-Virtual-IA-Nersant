@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AssistenteVirtualIA")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+68d15d5a7265564eb86ded4504fdb7b67884ca9d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4857f31403993a006fa6bbd9bebdba0025250262")]
 [assembly: System.Reflection.AssemblyProductAttribute("AssistenteVirtualIA")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AssistenteVirtualIA")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

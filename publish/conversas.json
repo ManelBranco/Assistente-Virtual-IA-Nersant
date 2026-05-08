@@ -1,15 +1,11 @@
 [
   {
-    "id": 1,
-    "title": "ola",
+    "id": 0,
+    "title": "Nova conversa",
     "messages": [
       {
-        "role": "user",
-        "text": "ola"
-      },
-      {
         "role": "bot",
-        "text": "Ol\u00E1! Como posso te ajudar hoje?"
+        "text": "Ol\u00E1! Sou um assistente virtual de Intelig\u00EAncia Artificial da Nersant, localizado em Torres Novas. Como posso ajudar voc\u00EA hoje?"
       }
     ]
   },
@@ -23,7 +19,21 @@
       },
       {
         "role": "bot",
-        "text": "Ol\u00E1! Como posso ajudar hoje?"
+        "text": "Ol\u00E1! Como posso ajudar voc\u00EA hoje?"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "ola",
+    "messages": [
+      {
+        "role": "user",
+        "text": "ola"
+      },
+      {
+        "role": "bot",
+        "text": "Ol\u00E1, sou um assistente virtual de Intelig\u00EAncia Artificial da Nersant de Torres Novas. Como posso ajudar voc\u00EA hoje?"
       }
     ]
   }

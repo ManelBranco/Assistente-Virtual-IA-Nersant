@@ -316,7 +316,7 @@ async function send() {
     console.log("send() start, activeConversationId:", activeConversationId);
 
     // Se ainda não houver conversa ativa, criar uma automaticamente.
-    if (!activeConversationId) {
+    if (activeConversationId === null) {
         console.log("send() detectou activeConversationId vazio, vai chamar newChat()");
         await newChat();
         console.log("send() depois de newChat, activeConversationId:", activeConversationId);
@@ -430,9 +430,18 @@ async function send() {
 }
 
 // Configurar eventos quando a página carregar
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
     console.log("DOMContentLoaded do script.js executado");
-    loadHistory();
+    await loadHistory();
+    // Se há conversas no histórico, carregar a última; senão, criar uma nova
+    if (conversationHistory.length > 0) {
+        if (activeConversationId === null) {
+            loadConversation(conversationHistory[conversationHistory.length - 1].id);
+        }
+    } else {
+        // Se não há conversas, criar uma nova automaticamente
+        await newChat();
+    }
     updateStatsDisplay();
     
     // Configurar evento de pesquisa em tempo real
