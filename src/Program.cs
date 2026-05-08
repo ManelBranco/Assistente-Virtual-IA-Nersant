@@ -14,6 +14,7 @@ app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader())
 var publicDir = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var conversationsPath = Path.Combine(app.Environment.ContentRootPath, "data", "conversas.json");
 var statsPath = Path.Combine(app.Environment.ContentRootPath, "data", "stats.json");
+var contextPromptPath = Path.Combine(app.Environment.ContentRootPath, "data", "context_prompt.txt");
 
 // Garantir que as pastas necessárias existem antes de gravar ficheiros.
 Directory.CreateDirectory(publicDir);
@@ -30,6 +31,21 @@ var jsonOptions = new JsonSerializerOptions
 // Inicializa o armazenamento de conversas e estatísticas.
 var store = new DataStore(conversationsPath, statsPath, jsonOptions);
 await store.InitializeAsync();
+
+// System prompt que será introduzido apenas na primeira mensagem
+const string SYSTEM_PROMPT = @"Responde sempre em português de Portugal. Sê natural, direto e formal. Apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Na primeira mensagem pergunta em que podes ajudar.";
+
+// Carregar ou criar o context prompt editável
+string contextPrompt = "";
+if (File.Exists(contextPromptPath))
+{
+    contextPrompt = await File.ReadAllTextAsync(contextPromptPath);
+}
+else
+{
+    contextPrompt = "Contexto adicional: [Edita este ficheiro com informações contextuais que serão usadas nas conversas.]";
+    await File.WriteAllTextAsync(contextPromptPath, contextPrompt);
+}
 
 // Configurar ficheiros estáticos para servir o site em wwwroot.
 app.UseDefaultFiles(new DefaultFilesOptions
@@ -102,6 +118,29 @@ app.MapPost("/api/clear-history", async () =>
 
 app.MapGet("/api/stats", () => Results.Json(store.Stats, jsonOptions));
 
+// Rota para obter o context prompt editável
+app.MapGet("/api/context-prompt", async () =>
+{
+    if (File.Exists(contextPromptPath))
+    {
+        var content = await File.ReadAllTextAsync(contextPromptPath);
+        return Results.Json(new { contextPrompt = content }, jsonOptions);
+    }
+    return Results.Json(new { contextPrompt = "" }, jsonOptions);
+});
+
+// Rota para atualizar o context prompt
+app.MapPost("/api/context-prompt", async (ContextPromptRequest request) =>
+{
+    if (string.IsNullOrWhiteSpace(request.ContextPrompt))
+    {
+        return Results.BadRequest(new { error = "Context prompt não pode estar vazio" });
+    }
+    await File.WriteAllTextAsync(contextPromptPath, request.ContextPrompt);
+    contextPrompt = request.ContextPrompt;
+    return Results.Json(new { ok = true });
+});
+
 app.MapPost("/api/stats/update", async (StatsUpdateRequest request) =>
 {
     if (request.ThinkingTime.HasValue)
@@ -134,8 +173,19 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         store.CurrentConversation = store.CurrentConversation with { Title = title };
     }
 
-    var systemPrompt = "Responde sempre em português de Portugal. Sê natural, direto e formal. Apenas na primeira mensagem apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Nas restantes mensagens não repitas a apresentação. Apenas na primeira mensagem pergunta em que podes ajudar. Nas restantes mensagens não repitas";
-    var fullPrompt = $"{systemPrompt}\n\nUtilizador: {request.Message}";
+    // Construir o prompt: sistema + contexto (apenas na primeira mensagem) + histórico de conversas
+    string fullPrompt;
+    
+    if (store.CurrentConversation.Messages.Count == 2) // Contagem é 2 porque já adicionámos a mensagem do utilizador
+    {
+        // Primeira mensagem: incluir sistema e contexto
+        fullPrompt = $"{SYSTEM_PROMPT}\n\n{contextPrompt}\n\nUtilizador: {request.Message}";
+    }
+    else
+    {
+        // Mensagens subsequentes: apenas a mensagem do utilizador
+        fullPrompt = $"Utilizador: {request.Message}";
+    }
 
     var start = DateTime.UtcNow;
 
@@ -419,6 +469,7 @@ internal sealed record Message(string Role, string Text);
 internal sealed record ChatRequest(string Message, string Model);
 internal sealed record ChatResponse(string Reply, long Time);
 internal sealed record StatsUpdateRequest(long? ThinkingTime, int? MessagesSent);
+internal sealed record ContextPromptRequest(string ContextPrompt);
 
 internal sealed class GlobalStats
 {

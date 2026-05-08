@@ -307,12 +307,18 @@ async function send() {
     userMessageDiv.textContent = message;
     chat.appendChild(userMessageDiv);
     
+    // Scroll automático após a mensagem do utilizador
+    chat.scrollTop = chat.scrollHeight;
+    
     // Mostrar indicador de "A pensar..." com temporizador
     const loadingDiv = document.createElement("div");
     loadingDiv.className = "message bot";
     loadingDiv.id = "loading";
     loadingDiv.innerHTML = `A pensar... <span id="timer">0.00s</span>`;
     chat.appendChild(loadingDiv);
+    
+    // Scroll automático após o indicador de "A pensar..."
+    chat.scrollTop = chat.scrollHeight;
     
     const startTime = Date.now();  // Marcar início
     
