@@ -1,4 +1,4 @@
-console.log("script.js carregado");
+
 
 // Variáveis globais para estatísticas
 let totalThinkingTime = 0;      // Tempo total que a IA "pensou"
@@ -315,11 +315,10 @@ async function send() {
 
     console.log("send() start, activeConversationId:", activeConversationId);
 
-    // Se ainda não houver conversa ativa, criar uma automaticamente.
+    // Se não houver conversa ativa, não enviar; iniciar nova conversa com o botão.
     if (activeConversationId === null) {
-        console.log("send() detectou activeConversationId vazio, vai chamar newChat()");
-        await newChat();
-        console.log("send() depois de newChat, activeConversationId:", activeConversationId);
+        console.warn("send() não pode enviar mensagem sem conversa ativa. Clique em Nova conversa para iniciar.");
+        return;
     }
 
     isSending = true;
@@ -439,8 +438,8 @@ window.addEventListener("DOMContentLoaded", async () => {
             loadConversation(conversationHistory[conversationHistory.length - 1].id);
         }
     } else {
-        // Se não há conversas, criar uma nova automaticamente
-        await newChat();
+        // Se não há conversas, aguardar o clique em Nova conversa para iniciar
+        console.log("Nenhuma conversa existente. Clique em Nova conversa para começar.");
     }
     updateStatsDisplay();
     
