@@ -32,8 +32,8 @@ var jsonOptions = new JsonSerializerOptions
 var store = new DataStore(conversationsPath, statsPath, jsonOptions);
 await store.InitializeAsync();
 
-// System prompt que será introduzido apenas na primeira mensagem
-const string SYSTEM_PROMPT = @"Responde sempre em português de Portugal. Sê natural, direto e formal. Apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Usa sempre o histórico da conversa para responder, especialmente quando o utilizador pede uma continuação de um cálculo ou sequência. Se o utilizador disser olá, pergunta em que podes ajudar. Se o utilizador fizer uma sequência de cálculos como 'agora adiciona X', usa o resultado numérico anterior sem pedir outro valor.";
+// System prompt que será introduzido em cada mensagem
+const string SYSTEM_PROMPT = @"Responde sempre em português de Portugal. Sê natural, direto e formal. Apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Usa sempre o histórico da conversa para manter contexto. Se o utilizador pedir para continuar uma receita, cálculo ou sequência, consulta a mensagem anterior e responde a partir daí.";
 
 // Carregar ou criar o context prompt editável
 string contextPrompt = "";
@@ -176,7 +176,8 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         return Results.BadRequest(new { reply = "Pedido inválido", time = 0 });
     }
 
-    var conversation = store.CurrentConversation;
+    // Carregar a conversa correta
+    Conversation conversation = store.CurrentConversation;
     if (request.ConversationId.HasValue)
     {
         var requestedId = request.ConversationId.Value;
@@ -184,27 +185,33 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         if (existingConversation is not null)
         {
             conversation = existingConversation;
+            store.CurrentConversation = conversation;
         }
     }
 
-    if (conversation.Id != store.CurrentConversation.Id)
-    {
-        store.CurrentConversation = conversation;
-    }
-
-    // Guardar a mensagem do utilizador na conversa correta.
+    // Adicionar a mensagem do utilizador
     conversation.Messages.Add(new Message("user", request.Message));
 
-    // O título da conversa é definido com a primeira mensagem enviada.
+    // Atualizar o título se for a primeira mensagem
     if (conversation.Messages.Count == 1)
     {
         var title = request.Message.Length <= 30 ? request.Message.Trim() : request.Message.Substring(0, 30).Trim() + "...";
         conversation = conversation with { Title = title };
         store.CurrentConversation = conversation;
+        
+        // Atualizar a conversa em store.Conversations
+        var convIndex = store.Conversations.FindIndex(c => c.Id == conversation.Id);
+        if (convIndex >= 0)
+        {
+            store.Conversations[convIndex] = conversation;
+        }
+        else
+        {
+            store.Conversations.Add(conversation);
+        }
     }
 
-    var conversationHistory = string.Join("\n", conversation.Messages.Select(m => m.Role == "user" ? $"Utilizador: {m.Text}" : $"Assistente: {m.Text}"));
-    var fullPrompt = $"{SYSTEM_PROMPT}\n\n{contextPrompt}\n\n{conversationHistory}\nAssistente:";
+    var fullPrompt = BuildPrompt(conversation, contextPrompt, SYSTEM_PROMPT);
 
     var start = DateTime.UtcNow;
 
@@ -242,7 +249,17 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         var end = DateTime.UtcNow;
         var duration = (long)(end - start).TotalMilliseconds;
 
+        // Adicionar a resposta da IA
         conversation.Messages.Add(new Message("bot", replyText));
+        store.CurrentConversation = conversation;
+        
+        // Atualizar a conversa em store.Conversations
+        var conversationIndex = store.Conversations.FindIndex(c => c.Id == conversation.Id);
+        if (conversationIndex >= 0)
+        {
+            store.Conversations[conversationIndex] = conversation;
+        }
+        
         await store.SaveCurrentConversationAsync();
 
         return Results.Json(new { reply = replyText, time = duration, context = fullPrompt, conversationId = conversation.Id, usedModel, usedEndpoint }, jsonOptions);
@@ -305,6 +322,35 @@ static string ExtractReplyText(string json)
     }
 
     return string.Empty;
+}
+
+static string BuildPrompt(Conversation conversation, string contextPrompt, string systemPrompt)
+{
+    bool isFirstMessage = conversation.Messages.Count <= 1;
+    
+    var allMessages = conversation.Messages;
+    var userMessageCount = allMessages.Count(m => m.Role == "user");
+    
+    var conversationHistory = allMessages.Any()
+        ? string.Join("\n", allMessages.Select(m => $"{(m.Role == "user" ? "Utilizador" : "Assistente")}: {m.Text.Trim()}"))
+        : "";
+
+    var firstMessageInstructions = @"Esta é a primeira mensagem do utilizador. Apresenta-te de forma breve como assistente da Nersant. Cumprimenta e responde à pergunta ou pedido.";
+    
+    var subsequentMessageInstructions = @"Esta não é a primeira mensagem. Não cumprimentes o utilizador. Responde de forma direta ao que ele pede, usando sempre o histórico anterior para manter contexto e coerência. Não repitas informação que o utilizador já deu.";
+
+    var instructions = isFirstMessage ? firstMessageInstructions : subsequentMessageInstructions;
+
+    return $@"{systemPrompt}
+
+{contextPrompt}
+
+{instructions}
+
+Histórico da conversa:
+{(string.IsNullOrWhiteSpace(conversationHistory) ? "[Nenhuma mensagem anterior]" : conversationHistory)}
+
+Assistente:";
 }
 
 // Classe que gerencia o armazenamento de conversas e estatísticas em ficheiros JSON.
