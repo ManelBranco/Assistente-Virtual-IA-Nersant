@@ -237,7 +237,17 @@ function deleteConversation(id, event) {
 
 // Limpar TODO o histórico (apagar todas as conversas)
 async function clearAllHistory() {
-    await fetch("/api/clear-history", { method: "POST" });
+    const res = await fetch("/api/clear-history", { method: "POST" });
+    if (!res.ok) {
+        const errorText = await res.text();
+        console.error("clearAllHistory: falha ao apagar histórico", res.status, errorText);
+        alert("Não foi possível eliminar o histórico. Vê o console para mais detalhes.");
+        return;
+    }
+
+    activeConversationId = null;
+    conversationHistory = [];
+
     const chat = document.getElementById("chat");
     if (chat) {
         chat.innerHTML = "";  // Limpar chat

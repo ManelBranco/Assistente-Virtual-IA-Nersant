@@ -117,8 +117,16 @@ app.MapDelete("/api/conversation/{id:int}", async (int id) =>
 // Apaga todo o histórico de conversas e reinicia as estatísticas.
 app.MapPost("/api/clear-history", async () =>
 {
-    await store.ClearHistoryAsync();
-    return Results.Json(new { ok = true });
+    try
+    {
+        await store.ClearHistoryAsync();
+        return Results.Json(new { ok = true });
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Erro ao limpar histórico: {ex.Message}");
+        return Results.Problem("Não foi possível apagar o histórico de conversas.", statusCode: 500);
+    }
 });
 
 app.MapGet("/api/stats", () => Results.Json(store.Stats, jsonOptions));
