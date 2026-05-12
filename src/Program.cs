@@ -1,15 +1,24 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
 // Configuração do servidor Web e permissões CORS para permitir pedidos do navegador.
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.IdleTimeout = TimeSpan.FromMinutes(60);
+});
 
 var app = builder.Build();
 app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+app.UseSession();
 
 var publicDir = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var conversationsPath = Path.Combine(app.Environment.ContentRootPath, "data", "conversas.json");
@@ -79,7 +88,7 @@ app.MapGet("/api/conversation/{id:int}", (int id) =>
 });
 
 // Inicia uma nova conversa e garante que a conversa anterior fica guardada.
-app.MapPost("/api/new-chat", async () =>
+app.MapPost("/api/new-chat", async (HttpContext http) =>
 {
     await store.SaveCurrentConversationIfNeededAsync();
     store.Stats.TotalConversations++;
@@ -89,8 +98,10 @@ app.MapPost("/api/new-chat", async () =>
     
     // ⭐ IMPORTANTE: Adicionar a nova conversa à lista de conversas
     store.Conversations.Add(newConversation);
+    http.Session.SetInt32("ActiveConversationId", newConversation.Id);
     
     await store.SaveStatsAsync();
+    await store.SaveConversationsAsync();
     return Results.Json(new { ok = true, id = store.CurrentConversation.Id });
 });
 
@@ -169,24 +180,40 @@ app.MapPost("/api/stats/update", async (StatsUpdateRequest request) =>
 });
 
 // Rota de chat: recebe a mensagem do utilizador, envia ao modelo IA e devolve a resposta.
-app.MapPost("/api/chat", async (ChatRequest request) =>
+app.MapPost("/api/chat", async (HttpContext http, ChatRequest request) =>
 {
     if (string.IsNullOrWhiteSpace(request.Message) || string.IsNullOrWhiteSpace(request.Model))
     {
         return Results.BadRequest(new { reply = "Pedido inválido", time = 0 });
     }
 
-    // Carregar a conversa correta
+    // Carregar a conversa correta do request ou da sessão do IIS
     Conversation conversation = store.CurrentConversation;
-    if (request.ConversationId.HasValue)
+    int? requestedId = request.ConversationId;
+    if (!requestedId.HasValue)
     {
-        var requestedId = request.ConversationId.Value;
-        var existingConversation = store.Conversations.FirstOrDefault(c => c.Id == requestedId);
+        requestedId = http.Session.GetInt32("ActiveConversationId");
+    }
+
+    if (requestedId.HasValue)
+    {
+        var existingConversation = store.Conversations.FirstOrDefault(c => c.Id == requestedId.Value);
         if (existingConversation is not null)
         {
             conversation = existingConversation;
             store.CurrentConversation = conversation;
         }
+    }
+
+    if (request.ConversationMessages is not null && request.ConversationMessages.Any())
+    {
+        conversation = conversation with { Messages = request.ConversationMessages.Select(m => new Message(m.Role, m.Text)).ToList() };
+        store.CurrentConversation = conversation;
+    }
+
+    if (conversation.Id != 0)
+    {
+        http.Session.SetInt32("ActiveConversationId", conversation.Id);
     }
 
     // Adicionar a mensagem do utilizador
@@ -546,7 +573,7 @@ internal class DataStore
 
 internal sealed record Conversation(int Id, string Title, List<Message> Messages);
 internal sealed record Message(string Role, string Text);
-internal sealed record ChatRequest(string Message, string Model, int? ConversationId = null);
+internal sealed record ChatRequest(string Message, string Model, int? ConversationId = null, List<Message>? ConversationMessages = null);
 internal sealed record ChatResponse(string Reply, long Time);
 internal sealed record StatsUpdateRequest(long? ThinkingTime, int? MessagesSent);
 internal sealed record ContextPromptRequest(string ContextPrompt);
