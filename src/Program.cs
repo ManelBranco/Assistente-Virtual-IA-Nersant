@@ -219,7 +219,7 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
     {
         using var httpClient = new HttpClient();
 
-        const string ollamaBase = "http://localhost:11434";
+        const string ollamaBase = "http://127.0.0.1:11434";
         string usedModel = request.Model;
         string usedEndpoint = "v1/chat/completions";
         string usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
