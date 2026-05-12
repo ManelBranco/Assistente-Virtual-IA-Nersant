@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">                            <!-- Suporte a caracteres especiais -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- Responsividade móvel -->
+<title>Assistente Virtual IA Nersant - Torres Novas</title>
+<link rel="stylesheet" href="style.css">          <!-- CSS para estilos -->
+</head>
+<body>
+
+<div class="app">  <!-- Container principal com flexbox (sidebar + chat) -->
+
+    <!-- SIDEBAR - Barra lateral esquerda -->
+    <aside class="sidebar">
+        <!-- Logo e nome da empresa -->
+        <div class="brand">
+            <div class="brand-mark">
+                <img src="https://gcdnb.pbrd.co/images/A-jLK0S6md8G.png" alt="Nersan Logo" class="brand-logo">
+            </div>
+            <div>
+                <div class="brand-name">Nersant</div>
+                <div class="brand-tag">Torres Novas • Soluções de IA</div>
+            </div>
+        </div>
+
+        <!-- Navegação entre páginas -->
+        <nav class="page-nav">
+            <a href="/index.html" class="active">Chat</a>
+            <a href="/faturas.html">Faturas</a>
+        </nav>
+
+        <!-- Campo de pesquisa de conversas -->
+        <input id="search" placeholder=" Pesquisar conversas..." autocomplete="off" />
+
+        <!-- Lista de conversas (preenchida por JavaScript) -->
+        <div id="conversations"></div>
+
+        <!-- Botões da sidebar -->
+        <button onclick="showStatsModal()" class="btn-stats"> Estatísticas</button>
+        <button onclick="newChat()" class="btn-secondary">Nova conversa</button>
+        <button onclick="showClearHistoryConfirm()" class="btn-clear-history">Remover histórico</button>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL - Chat -->
+    <section class="main">
+
+        <!-- Barra superior com título e seleção de modelo -->
+        <div class="topbar">
+            <div>
+                <h2>Assistente Virtual Nersant</h2>
+                <p class="topbar-subtitle"> Inovação e tecnologia ao seu serviço</p>
+            </div>
+            <div class="topbar-controls">
+                <label for="model"> Modelo</label>
+                <select id="model">
+                    <option value="qwen2.5:0.5b">Qwen 2.5 </option>
+                    <option value="granite4.1:3b">Granite 4.1</option>
+                    <option value="gemma4:e4b">Gemma 4</option>
+                    <option value="llama3.1:latest">Llama 3.1</option>
+                    <option value="deepseek-r1:14b">DeepSeek R1</option>
+                    <option value="gpt-oss:20b">GPT</option>
+                     <option value="qwen3.6:27b">Qwen 3.6 vison</option>
+                </select>
+            </div>
+        </div> 
+
+        <!-- Janela do chat - onde as mensagens aparecem -->
+        <div id="chat" class="chat-window">
+            <div class="empty-chat">
+                <p> Olá! Sou o assistente da Nersant.</p>
+                <p>Como posso ajudar hoje?</p>
+            </div>
+        </div>
+
+        <!-- Área de input para escrever mensagens -->
+        <div class="input-area">
+            <input id="input" placeholder="Escreve a tua mensagem aqui..." autocomplete="off" />
+            <button onclick="send()"> Enviar</button>
+        </div>
+
+    </section>
+
+</div>
+
+<!-- MODAL DE ESTATÍSTICAS - aparece ao clicar no botão -->
+<div id="statsModal" class="stats-modal">
+    <div class="stats-content">
+        <!-- Cabeçalho do modal com botão fechar -->
+        <div class="stats-header">
+            <h3> Estatísticas da IA</h3>
+            <button onclick="closeStatsModal()" class="close-stats">&times;</button>
+        </div>
+        <!-- Corpo do modal com as estatísticas -->
+        <div class="stats-body">
+            <div class="stat-item">
+                <span class="stat-label"> Tempo a pensar</span>
+                <span class="stat-value" id="modalThinking">0.00s</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label"> Mensagens enviadas</span>
+                <span class="stat-value" id="modalMessages">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label"> Conversas criadas</span>
+                <span class="stat-value" id="modalConversations">0</span>
+            </div>
+        </div>
+        <!-- Rodapé do modal com botão fechar -->
+        <div class="stats-footer">
+            <button onclick="closeStatsModal()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<div id="confirmModal" class="confirm-modal">
+    <div class="confirm-content">
+        <div class="confirm-header">
+            <div>
+                <h3 id="confirmTitle">Remover histórico</h3>
+                <p id="confirmSubtitle">Esta ação vai apagar todas as conversas salvas.</p>
+            </div>
+            <button class="close-confirm" onclick="closeConfirmModal()">&times;</button>
+        </div>
+        <div class="confirm-body">
+            <p id="confirmMessage">Isto vai apagar TODAS as conversas! Tens a certeza?</p>
+        </div>
+        <div class="confirm-actions">
+            <button class="btn-secondary" onclick="closeConfirmModal()">Cancelar</button>
+            <button id="confirmActionButton" class="btn-clear-history" onclick="runConfirmAction()">Apagar</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="script.js"></script>  <!-- JavaScript para funcionalidade -->
+</body>
+</html>
