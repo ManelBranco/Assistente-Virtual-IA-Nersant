@@ -219,11 +219,13 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
     {
         using var httpClient = new HttpClient();
 
+        const string ollamaBase = "http://localhost:11434";
         string usedModel = request.Model;
         string usedEndpoint = "v1/chat/completions";
+        string usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
 
         var response = await httpClient.PostAsJsonAsync(
-            "http://localhost:11434/v1/chat/completions",
+            usedApiUrl,
             new { model = request.Model, messages, max_tokens = 512, temperature = 0.2, stream = false }
         );
 
@@ -233,8 +235,9 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         if (!response.IsSuccessStatusCode && (lowerContent.Contains("not found") || lowerContent.Contains("invalid model") || lowerContent.Contains("invalid request") || lowerContent.Contains("unsupported") || lowerContent.Contains("internal server error")))
         {
             usedEndpoint = "api/chat";
+            usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
             response = await httpClient.PostAsJsonAsync(
-                "http://localhost:11434/api/chat",
+                usedApiUrl,
                 new { model = request.Model, messages, stream = false, options = new { temperature = 0.2 } }
             );
             content = await response.Content.ReadAsStringAsync();
@@ -242,7 +245,7 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
 
         if (!response.IsSuccessStatusCode)
         {
-            return Results.Json(new { reply = "Erro na API do Ollama", time = 0, error = content, context = messages, conversationId = conversation.Id, usedModel, usedEndpoint }, statusCode: 500, options: jsonOptions);
+            return Results.Json(new { reply = "Erro na API do Ollama", time = 0, error = content, context = messages, conversationId = conversation.Id, usedModel, usedEndpoint, usedApiUrl }, statusCode: 500, options: jsonOptions);
         }
 
         var replyText = ExtractReplyText(content);
@@ -262,7 +265,7 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
 
         await store.SaveCurrentConversationAsync();
 
-        return Results.Json(new { reply = replyText, time = duration, context = messages, conversationId = conversation.Id, usedModel, usedEndpoint }, jsonOptions);
+        return Results.Json(new { reply = replyText, time = duration, context = messages, conversationId = conversation.Id, usedModel, usedEndpoint, usedApiUrl }, jsonOptions);
     }
     catch (Exception ex)
     {
