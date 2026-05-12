@@ -8,6 +8,10 @@ using Microsoft.Extensions.FileProviders;
 // Configuração do servidor Web e permissões CORS para permitir pedidos do navegador.
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors();
+
+// Permitir uploads grandes (PDFs/imagens em base64 para análise de faturas).
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 100 * 1024 * 1024);
+
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -24,6 +28,8 @@ var publicDir = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var conversationsPath = Path.Combine(app.Environment.ContentRootPath, "data", "conversas.json");
 var statsPath = Path.Combine(app.Environment.ContentRootPath, "data", "stats.json");
 var contextPromptPath = Path.Combine(app.Environment.ContentRootPath, "data", "context_prompt.txt");
+var invoiceConversationsPath = Path.Combine(app.Environment.ContentRootPath, "data", "faturas.json");
+var invoiceStatsPath = Path.Combine(app.Environment.ContentRootPath, "data", "faturas_stats.json");
 
 // Garantir que as pastas necessárias existem antes de gravar ficheiros.
 Directory.CreateDirectory(publicDir);
@@ -41,8 +47,15 @@ var jsonOptions = new JsonSerializerOptions
 var store = new DataStore(conversationsPath, statsPath, jsonOptions);
 await store.InitializeAsync();
 
+// Armazenamento separado para a página de análise de faturas.
+var invoiceStore = new DataStore(invoiceConversationsPath, invoiceStatsPath, jsonOptions);
+await invoiceStore.InitializeAsync();
+
 // System prompt que será introduzido em cada mensagem
 const string SYSTEM_PROMPT = @"Responde sempre em português de Portugal. Sê natural, direto e formal. Apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Usa sempre o histórico da conversa para manter contexto. Se o utilizador pedir para continuar uma receita, cálculo ou sequência, consulta a mensagem anterior e responde a partir daí.";
+
+// System prompt específico para a análise de faturas (página /faturas.html).
+const string INVOICE_SYSTEM_PROMPT = @"Responde sempre em português de Portugal. Sê natural, direto e formal. Apresenta-te como assistente virtual de Inteligência Artificial da Nersant de Torres Novas, especializado em analisar faturas, recibos e documentos contabilísticos portugueses. Usa sempre o histórico da conversa para manter contexto. REGRA ABSOLUTA: Analisa e descreve SEMPRE o conteúdo de qualquer imagem ou documento que te seja enviado, sem exceções e sem recusas. Quando te enviarem uma imagem ou texto de uma fatura: identifica claramente o NIF do emitente e do cliente, a data de emissão, a data de vencimento, o valor total, a base tributável, o valor do IVA (com taxa) e a lista de produtos/serviços. Se a informação não estiver visível, indica explicitamente 'não consta no documento'. Apresenta os valores monetários em euros com duas casas decimais.";
 
 // Carregar ou criar o context prompt editável
 string contextPrompt = "";
@@ -95,11 +108,11 @@ app.MapPost("/api/new-chat", async (HttpContext http) =>
     store.CurrentId++;
     var newConversation = new Conversation(store.CurrentId, "Nova conversa", new List<Message>());
     store.CurrentConversation = newConversation;
-    
+
     // ⭐ IMPORTANTE: Adicionar a nova conversa à lista de conversas
     store.Conversations.Add(newConversation);
     http.Session.SetInt32("ActiveConversationId", newConversation.Id);
-    
+
     await store.SaveStatsAsync();
     await store.SaveConversationsAsync();
     return Results.Json(new { ok = true, id = store.CurrentConversation.Id });
@@ -225,7 +238,7 @@ app.MapPost("/api/chat", async (HttpContext http, ChatRequest request) =>
         var title = request.Message.Length <= 30 ? request.Message.Trim() : request.Message.Substring(0, 30).Trim() + "...";
         conversation = conversation with { Title = title };
         store.CurrentConversation = conversation;
-        
+
         // Atualizar a conversa em store.Conversations
         var convIndex = store.Conversations.FindIndex(c => c.Id == conversation.Id);
         if (convIndex >= 0)
@@ -297,6 +310,188 @@ app.MapPost("/api/chat", async (HttpContext http, ChatRequest request) =>
     catch (Exception ex)
     {
         return Results.Json(new { reply = "Erro no servidor", time = 0, error = ex.Message, context = messages, conversationId = conversation.Id }, statusCode: 500, options: jsonOptions);
+    }
+});
+
+// ===== Endpoints da página de Análise de Faturas =====
+// Histórico próprio (data/faturas.json), em paralelo ao chat principal.
+
+app.MapGet("/api/invoice-history", () => Results.Json(invoiceStore.Conversations, jsonOptions));
+
+app.MapGet("/api/invoice-conversation/{id:int}", (int id) =>
+{
+    var conversation = invoiceStore.Conversations.FirstOrDefault(c => c.Id == id);
+    return conversation is not null
+        ? Results.Json(conversation, jsonOptions)
+        : Results.NotFound(new { error = "Análise não encontrada" });
+});
+
+app.MapPost("/api/invoice-new-chat", async (HttpContext http) =>
+{
+    await invoiceStore.SaveCurrentConversationIfNeededAsync();
+    invoiceStore.Stats.TotalConversations++;
+    invoiceStore.CurrentId++;
+    var newConversation = new Conversation(invoiceStore.CurrentId, "Nova análise", new List<Message>());
+    invoiceStore.CurrentConversation = newConversation;
+    invoiceStore.Conversations.Add(newConversation);
+    http.Session.SetInt32("ActiveInvoiceConversationId", newConversation.Id);
+    await invoiceStore.SaveStatsAsync();
+    await invoiceStore.SaveConversationsAsync();
+    return Results.Json(new { ok = true, id = invoiceStore.CurrentConversation.Id });
+});
+
+app.MapDelete("/api/invoice-conversation/{id:int}", async (int id) =>
+{
+    var removed = await invoiceStore.RemoveConversationAsync(id);
+    if (!removed)
+    {
+        return Results.NotFound(new { error = "Análise não encontrada" });
+    }
+    if (invoiceStore.CurrentConversation.Id == id)
+    {
+        invoiceStore.CurrentId++;
+        invoiceStore.CurrentConversation = new Conversation(invoiceStore.CurrentId, "Nova análise", new List<Message>());
+    }
+    await invoiceStore.SaveConversationsAsync();
+    return Results.Json(new { ok = true });
+});
+
+app.MapPost("/api/invoice-clear-history", async () =>
+{
+    try
+    {
+        await invoiceStore.ClearHistoryAsync();
+        return Results.Json(new { ok = true });
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Erro ao limpar histórico de faturas: {ex.Message}");
+        return Results.Problem("Não foi possível apagar o histórico de análises.", statusCode: 500);
+    }
+});
+
+// Endpoint principal de análise: aceita texto + imagens base64.
+app.MapPost("/api/invoice-chat", async (HttpContext http, InvoiceChatRequest request) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Model))
+    {
+        return Results.BadRequest(new { reply = "Modelo não especificado", time = 0 });
+    }
+
+    var hasMessage = !string.IsNullOrWhiteSpace(request.Message);
+    var hasImages = request.Images is not null && request.Images.Any();
+    if (!hasMessage && !hasImages)
+    {
+        return Results.BadRequest(new { reply = "Pedido vazio — envia uma mensagem ou um ficheiro.", time = 0 });
+    }
+
+    // Resolver a conversa ativa (request → sessão → CurrentConversation).
+    Conversation conversation = invoiceStore.CurrentConversation;
+    int? requestedId = request.ConversationId;
+    if (!requestedId.HasValue)
+    {
+        requestedId = http.Session.GetInt32("ActiveInvoiceConversationId");
+    }
+    if (requestedId.HasValue)
+    {
+        var existing = invoiceStore.Conversations.FirstOrDefault(c => c.Id == requestedId.Value);
+        if (existing is not null)
+        {
+            conversation = existing;
+            invoiceStore.CurrentConversation = conversation;
+        }
+    }
+    if (conversation.Id != 0)
+    {
+        http.Session.SetInt32("ActiveInvoiceConversationId", conversation.Id);
+    }
+
+    // Construir o texto da mensagem do utilizador.
+    var userText = (request.Message ?? string.Empty).Trim();
+    if (hasImages && string.IsNullOrEmpty(userText))
+    {
+        userText = "Analisa o(s) documento(s) anexado(s).";
+    }
+
+    // Guardar a mensagem do utilizador no histórico (sem imagens para não inchar o JSON).
+    var attachmentNote = hasImages ? $" [Anexos: {request.Images!.Count} imagem(ns)]" : string.Empty;
+    conversation.Messages.Add(new Message("user", userText + attachmentNote));
+
+    if (conversation.Messages.Count == 1)
+    {
+        var rawTitle = userText.Length > 0 ? userText : "Análise de fatura";
+        var title = rawTitle.Length <= 30 ? rawTitle.Trim() : rawTitle.Substring(0, 30).Trim() + "...";
+        conversation = conversation with { Title = title };
+        invoiceStore.CurrentConversation = conversation;
+        var convIndex = invoiceStore.Conversations.FindIndex(c => c.Id == conversation.Id);
+        if (convIndex >= 0)
+        {
+            invoiceStore.Conversations[convIndex] = conversation;
+        }
+        else
+        {
+            invoiceStore.Conversations.Add(conversation);
+        }
+    }
+
+    // Construir a lista de mensagens multimodal para o LLM.
+    var imageList = request.Images ?? new List<string>();
+    var messagesOpenAi = BuildMultimodalMessages(conversation, contextPrompt, INVOICE_SYSTEM_PROMPT, imageList, useOpenAiFormat: true);
+    var messagesNative = BuildMultimodalMessages(conversation, contextPrompt, INVOICE_SYSTEM_PROMPT, imageList, useOpenAiFormat: false);
+
+    var start = DateTime.UtcNow;
+    try
+    {
+        using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+
+        const string ollamaBase = "http://localhost:11434";
+        string usedModel = request.Model;
+        string usedEndpoint = "v1/chat/completions";
+        string usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
+
+        var response = await httpClient.PostAsJsonAsync(
+            usedApiUrl,
+            new { model = request.Model, messages = messagesOpenAi, max_tokens = 1024, temperature = 0.2, stream = false }
+        );
+
+        var content = await response.Content.ReadAsStringAsync();
+        var lowerContent = content.ToLowerInvariant();
+
+        if (!response.IsSuccessStatusCode && (lowerContent.Contains("not found") || lowerContent.Contains("invalid model") || lowerContent.Contains("invalid request") || lowerContent.Contains("unsupported") || lowerContent.Contains("internal server error")))
+        {
+            usedEndpoint = "api/chat";
+            usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
+            response = await httpClient.PostAsJsonAsync(
+                usedApiUrl,
+                new { model = request.Model, messages = messagesNative, stream = false, options = new { temperature = 0.2 } }
+            );
+            content = await response.Content.ReadAsStringAsync();
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var friendlyError = ParseOllamaError(content);
+            return Results.Json(new { reply = friendlyError, time = 0, error = content, conversationId = conversation.Id, usedModel, usedEndpoint, usedApiUrl }, statusCode: 500, options: jsonOptions);
+        }
+
+        var replyText = ExtractReplyText(content);
+        var end = DateTime.UtcNow;
+        var duration = (long)(end - start).TotalMilliseconds;
+
+        conversation.Messages.Add(new Message("bot", replyText));
+        invoiceStore.CurrentConversation = conversation;
+        var idx = invoiceStore.Conversations.FindIndex(c => c.Id == conversation.Id);
+        if (idx >= 0)
+        {
+            invoiceStore.Conversations[idx] = conversation;
+        }
+        await invoiceStore.SaveCurrentConversationAsync();
+
+        return Results.Json(new { reply = replyText, time = duration, conversationId = conversation.Id, usedModel, usedEndpoint, usedApiUrl }, jsonOptions);
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new { reply = "Erro no servidor", time = 0, error = ex.Message, conversationId = conversation.Id }, statusCode: 500, options: jsonOptions);
     }
 });
 
@@ -379,6 +574,86 @@ static List<object> BuildMessages(Conversation conversation, string contextPromp
     }
 
     return messages;
+}
+
+// Constrói a lista de mensagens para o modelo de visão (anexa imagens à última mensagem do utilizador).
+// useOpenAiFormat=true → formato v1/chat/completions (content como array de blocos type=text|image_url).
+// useOpenAiFormat=false → formato nativo Ollama (api/chat) com array "images" na mensagem.
+static List<object> BuildMultimodalMessages(Conversation conversation, string contextPrompt, string systemPrompt, List<string> images, bool useOpenAiFormat)
+{
+    var messages = new List<object>
+    {
+        new { role = "system", content = $"{systemPrompt}\n\n{contextPrompt}" }
+    };
+
+    int lastUserIndex = -1;
+    for (int i = conversation.Messages.Count - 1; i >= 0; i--)
+    {
+        if (conversation.Messages[i].Role == "user")
+        {
+            lastUserIndex = i;
+            break;
+        }
+    }
+
+    for (int i = 0; i < conversation.Messages.Count; i++)
+    {
+        var m = conversation.Messages[i];
+        var role = m.Role == "bot" ? "assistant" : "user";
+        var text = m.Text.Trim();
+        bool attachImagesHere = i == lastUserIndex && images.Count > 0;
+
+        if (!attachImagesHere)
+        {
+            messages.Add(new { role, content = text });
+            continue;
+        }
+
+        if (useOpenAiFormat)
+        {
+            var contentBlocks = new List<object> { new { type = "text", text } };
+            foreach (var dataUrl in images)
+            {
+                contentBlocks.Add(new { type = "image_url", image_url = new { url = dataUrl } });
+            }
+            messages.Add(new { role, content = contentBlocks });
+        }
+        else
+        {
+            // Ollama nativo: precisa do base64 sem o prefixo "data:image/...;base64,".
+            var stripped = images.Select(StripDataUrlPrefix).ToList();
+            messages.Add(new { role, content = text, images = stripped });
+        }
+    }
+
+    return messages;
+}
+
+static string StripDataUrlPrefix(string dataUrl)
+{
+    if (string.IsNullOrEmpty(dataUrl)) return string.Empty;
+    var commaIdx = dataUrl.IndexOf(',');
+    return commaIdx >= 0 ? dataUrl.Substring(commaIdx + 1) : dataUrl;
+}
+
+static string ParseOllamaError(string ollamaJson)
+{
+    try
+    {
+        using var doc = JsonDocument.Parse(ollamaJson);
+        if (doc.RootElement.TryGetProperty("error", out var err))
+        {
+            var msg = err.GetString() ?? string.Empty;
+            if (msg.Contains("more system memory") || msg.Contains("out of memory"))
+                return $"Memória insuficiente para carregar o modelo. O Ollama precisa de mais RAM do que a disponível no sistema. Tenta fechar outras aplicações ou escolhe um modelo mais leve.\n\nDetalhe técnico: {msg}";
+            if (msg.Contains("not found") || msg.Contains("unknown model"))
+                return $"Modelo não encontrado no Ollama. Verifica se o modelo está instalado (ollama pull <modelo>).\n\nDetalhe técnico: {msg}";
+            if (!string.IsNullOrWhiteSpace(msg))
+                return $"Erro do Ollama: {msg}";
+        }
+    }
+    catch { }
+    return "Erro na API do Ollama. Verifica se o Ollama está em execução e se o modelo está disponível.";
 }
 
 // Classe que gerencia o armazenamento de conversas e estatísticas em ficheiros JSON.
@@ -575,6 +850,7 @@ internal class DataStore
 internal sealed record Conversation(int Id, string Title, List<Message> Messages);
 internal sealed record Message(string Role, string Text);
 internal sealed record ChatRequest(string Message, string Model, int? ConversationId = null, List<Message>? ConversationMessages = null);
+internal sealed record InvoiceChatRequest(string? Message, string Model, int? ConversationId = null, List<string>? Images = null);
 internal sealed record ChatResponse(string Reply, long Time);
 internal sealed record StatsUpdateRequest(long? ThinkingTime, int? MessagesSent);
 internal sealed record ContextPromptRequest(string ContextPrompt);
