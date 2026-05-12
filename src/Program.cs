@@ -211,7 +211,7 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         }
     }
 
-    var fullPrompt = BuildPrompt(conversation, contextPrompt, SYSTEM_PROMPT);
+    var messages = BuildMessages(conversation, contextPrompt, SYSTEM_PROMPT);
 
     var start = DateTime.UtcNow;
 
@@ -220,11 +220,11 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         using var httpClient = new HttpClient();
 
         string usedModel = request.Model;
-        string usedEndpoint = "v1/completions";
+        string usedEndpoint = "v1/chat/completions";
 
         var response = await httpClient.PostAsJsonAsync(
-            "http://localhost:11434/v1/completions",
-            new { model = request.Model, prompt = fullPrompt, max_tokens = 512, temperature = 0.2 }
+            "http://localhost:11434/v1/chat/completions",
+            new { model = request.Model, messages, max_tokens = 512, temperature = 0.2, stream = false }
         );
 
         var content = await response.Content.ReadAsStringAsync();
@@ -232,17 +232,17 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
 
         if (!response.IsSuccessStatusCode && (lowerContent.Contains("not found") || lowerContent.Contains("invalid model") || lowerContent.Contains("invalid request") || lowerContent.Contains("unsupported") || lowerContent.Contains("internal server error")))
         {
-            usedEndpoint = "api/generate";
+            usedEndpoint = "api/chat";
             response = await httpClient.PostAsJsonAsync(
-                "http://localhost:11434/api/generate",
-                new { model = request.Model, prompt = fullPrompt, stream = false }
+                "http://localhost:11434/api/chat",
+                new { model = request.Model, messages, stream = false, options = new { temperature = 0.2 } }
             );
             content = await response.Content.ReadAsStringAsync();
         }
 
         if (!response.IsSuccessStatusCode)
         {
-            return Results.Json(new { reply = "Erro na API do Ollama", time = 0, error = content, context = fullPrompt, conversationId = conversation.Id, usedModel, usedEndpoint }, statusCode: 500, options: jsonOptions);
+            return Results.Json(new { reply = "Erro na API do Ollama", time = 0, error = content, context = messages, conversationId = conversation.Id, usedModel, usedEndpoint }, statusCode: 500, options: jsonOptions);
         }
 
         var replyText = ExtractReplyText(content);
@@ -252,21 +252,21 @@ app.MapPost("/api/chat", async (ChatRequest request) =>
         // Adicionar a resposta da IA
         conversation.Messages.Add(new Message("bot", replyText));
         store.CurrentConversation = conversation;
-        
+
         // Atualizar a conversa em store.Conversations
         var conversationIndex = store.Conversations.FindIndex(c => c.Id == conversation.Id);
         if (conversationIndex >= 0)
         {
             store.Conversations[conversationIndex] = conversation;
         }
-        
+
         await store.SaveCurrentConversationAsync();
 
-        return Results.Json(new { reply = replyText, time = duration, context = fullPrompt, conversationId = conversation.Id, usedModel, usedEndpoint }, jsonOptions);
+        return Results.Json(new { reply = replyText, time = duration, context = messages, conversationId = conversation.Id, usedModel, usedEndpoint }, jsonOptions);
     }
     catch (Exception ex)
     {
-        return Results.Json(new { reply = "Erro no servidor", time = 0, error = ex.Message, context = fullPrompt, conversationId = conversation.Id }, statusCode: 500, options: jsonOptions);
+        return Results.Json(new { reply = "Erro no servidor", time = 0, error = ex.Message, context = messages, conversationId = conversation.Id }, statusCode: 500, options: jsonOptions);
     }
 });
 
@@ -299,6 +299,12 @@ static string ExtractReplyText(string json)
             }
         }
 
+        if (root.TryGetProperty("message", out var messageRootProp) && messageRootProp.ValueKind == JsonValueKind.Object
+            && messageRootProp.TryGetProperty("content", out var messageRootContent) && messageRootContent.ValueKind == JsonValueKind.String)
+        {
+            return messageRootContent.GetString() ?? string.Empty;
+        }
+
         if (root.TryGetProperty("choices", out var choicesProp) && choicesProp.ValueKind == JsonValueKind.Array && choicesProp.GetArrayLength() > 0)
         {
             var firstChoice = choicesProp[0];
@@ -324,33 +330,25 @@ static string ExtractReplyText(string json)
     return string.Empty;
 }
 
-static string BuildPrompt(Conversation conversation, string contextPrompt, string systemPrompt)
+static List<object> BuildMessages(Conversation conversation, string contextPrompt, string systemPrompt)
 {
     bool isFirstMessage = conversation.Messages.Count <= 1;
-    
-    var allMessages = conversation.Messages;
-    var userMessageCount = allMessages.Count(m => m.Role == "user");
-    
-    var conversationHistory = allMessages.Any()
-        ? string.Join("\n", allMessages.Select(m => $"{(m.Role == "user" ? "Utilizador" : "Assistente")}: {m.Text.Trim()}"))
-        : "";
 
     var firstMessageInstructions = @"Esta é a primeira mensagem do utilizador. Apresenta-te de forma breve como assistente da Nersant. Cumprimenta e responde à pergunta ou pedido.";
-    
     var subsequentMessageInstructions = @"Esta não é a primeira mensagem. Não cumprimentes o utilizador. Responde de forma direta ao que ele pede, usando sempre o histórico anterior para manter contexto e coerência. Não repitas informação que o utilizador já deu.";
-
     var instructions = isFirstMessage ? firstMessageInstructions : subsequentMessageInstructions;
 
-    return $@"{systemPrompt}
+    var messages = new List<object>
+    {
+        new { role = "system", content = $"{systemPrompt}\n\n{contextPrompt}\n\n{instructions}" }
+    };
 
-{contextPrompt}
+    foreach (var m in conversation.Messages)
+    {
+        messages.Add(new { role = m.Role == "bot" ? "assistant" : "user", content = m.Text.Trim() });
+    }
 
-{instructions}
-
-Histórico da conversa:
-{(string.IsNullOrWhiteSpace(conversationHistory) ? "[Nenhuma mensagem anterior]" : conversationHistory)}
-
-Assistente:";
+    return messages;
 }
 
 // Classe que gerencia o armazenamento de conversas e estatísticas em ficheiros JSON.
