@@ -457,7 +457,7 @@ app.MapPost("/api/invoice-chat", async (HttpContext http, InvoiceChatRequest req
         var content = await response.Content.ReadAsStringAsync();
         var lowerContent = content.ToLowerInvariant();
 
-        if (!response.IsSuccessStatusCode && (lowerContent.Contains("not found") || lowerContent.Contains("invalid model") || lowerContent.Contains("invalid request") || lowerContent.Contains("unsupported") || lowerContent.Contains("internal server error")))
+        if (!response.IsSuccessStatusCode && (lowerContent.Contains("not found") || lowerContent.Contains("invalid model") || lowerContent.Contains("invalid request") || lowerContent.Contains("unsupported") || lowerContent.Contains("internal server error") || lowerContent.Contains("api_error") || lowerContent.Contains("more system memory")))
         {
             usedEndpoint = "api/chat";
             usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
@@ -641,9 +641,19 @@ static string ParseOllamaError(string ollamaJson)
     try
     {
         using var doc = JsonDocument.Parse(ollamaJson);
-        if (doc.RootElement.TryGetProperty("error", out var err))
+        var root = doc.RootElement;
+        if (root.TryGetProperty("error", out var err))
         {
-            var msg = err.GetString() ?? string.Empty;
+            string msg = string.Empty;
+            if (err.ValueKind == JsonValueKind.String)
+            {
+                msg = err.GetString() ?? string.Empty;
+            }
+            else if (err.ValueKind == JsonValueKind.Object && err.TryGetProperty("message", out var errMsg))
+            {
+                msg = errMsg.GetString() ?? string.Empty;
+            }
+
             if (msg.Contains("more system memory") || msg.Contains("out of memory"))
                 return $"Memória insuficiente para carregar o modelo. O Ollama precisa de mais RAM do que a disponível no sistema. Tenta fechar outras aplicações ou escolhe um modelo mais leve.\n\nDetalhe técnico: {msg}";
             if (msg.Contains("not found") || msg.Contains("unknown model"))
