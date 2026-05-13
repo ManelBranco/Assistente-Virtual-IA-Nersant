@@ -1,20 +1,19 @@
-// Página de Análise de Faturas — vanilla JS, sem build step.
 console.log("faturas.js carregado");
 
-let attachments = [];          // [{ id, name, dataUrl, mime, thumbnailUrl }]
+let attachments = [];
 let activeConversationId = null;
 let conversationHistory = [];
 let isSending = false;
 let confirmAction = null;
 let attachmentCounter = 0;
 
-// ===== Renderização de mensagens =====
-
 function renderBotMessage(markdownText, metaText, modelName) {
     const chat = document.getElementById("chat");
     if (!chat) return;
+
     const messageDiv = document.createElement("div");
     messageDiv.className = "message bot";
+
     let botHtml = marked.parse(markdownText || "");
     if (botHtml.includes("<a href=")) {
         const temp = document.createElement("div");
@@ -25,7 +24,10 @@ function renderBotMessage(markdownText, metaText, modelName) {
         });
         botHtml = temp.innerHTML;
     }
-    const modelMeta = modelName ? `<span class="meta-separator">•</span><span class="model-name">${modelName}</span>` : "";
+
+    const modelMeta = modelName
+        ? `<span class="meta-separator">•</span><span class="model-name">${modelName}</span>`
+        : "";
     messageDiv.innerHTML = `${botHtml}<div class="meta">${metaText}${modelMeta}</div>`;
     chat.appendChild(messageDiv);
 }
@@ -33,11 +35,14 @@ function renderBotMessage(markdownText, metaText, modelName) {
 function renderUserMessage(text, imageDataUrls) {
     const chat = document.getElementById("chat");
     if (!chat) return;
+
     const messageDiv = document.createElement("div");
     messageDiv.className = "message user";
+
     const textNode = document.createElement("div");
     textNode.textContent = text;
     messageDiv.appendChild(textNode);
+
     if (imageDataUrls && imageDataUrls.length > 0) {
         const gallery = document.createElement("div");
         gallery.className = "message-thumbs";
@@ -51,10 +56,9 @@ function renderUserMessage(text, imageDataUrls) {
         });
         messageDiv.appendChild(gallery);
     }
+
     chat.appendChild(messageDiv);
 }
-
-// ===== Lightbox =====
 
 function openLightbox(src) {
     document.getElementById("lightboxImg").src = src;
@@ -68,10 +72,10 @@ function closeLightbox() {
 
 function formatTime(ms) {
     const s = (ms || 0) / 1000;
-    return s >= 60 ? `${Math.floor(s/60)}:${(s%60).toFixed(2).padStart(5,'0')}s` : `${s.toFixed(2)}s`;
+    return s >= 60
+        ? `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, "0")}s`
+        : `${s.toFixed(2)}s`;
 }
-
-// ===== Modal de confirmação =====
 
 function openConfirmModal({ title, subtitle, message, actionLabel, action }) {
     const modal = document.getElementById("confirmModal");
@@ -115,8 +119,6 @@ window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeLightbox();
 });
 
-// ===== Histórico (sidebar) =====
-
 async function loadHistory() {
     const res = await fetch("/api/invoice-history");
     if (!res.ok) {
@@ -124,15 +126,19 @@ async function loadHistory() {
         return;
     }
     conversationHistory = await res.json();
+
     const box = document.getElementById("conversations");
     if (!box) return;
     box.innerHTML = "";
+
     conversationHistory.forEach(c => {
         const convDiv = document.createElement("div");
         convDiv.className = "conv";
+
         const titleDiv = document.createElement("div");
         titleDiv.className = "conv-title";
         titleDiv.textContent = c.title || "Análise sem título";
+
         const del = document.createElement("button");
         del.type = "button";
         del.className = "conv-delete";
@@ -142,6 +148,7 @@ async function loadHistory() {
             e.stopPropagation();
             deleteConversation(c.id);
         });
+
         convDiv.appendChild(titleDiv);
         convDiv.appendChild(del);
         convDiv.onclick = () => loadConversation(c.id);
@@ -153,9 +160,11 @@ async function loadConversation(id) {
     activeConversationId = id;
     const res = await fetch(`/api/invoice-conversation/${id}`);
     if (!res.ok) return;
+
     const conversation = await res.json();
     const chat = document.getElementById("chat");
     chat.innerHTML = "";
+
     conversation.messages.forEach(msg => {
         const div = document.createElement("div");
         if (msg.role === "bot") {
@@ -206,12 +215,10 @@ async function newAnalysis() {
     activeConversationId = data.id ?? null;
     clearAttachments();
     document.getElementById("input").value = "";
-    const chat = document.getElementById("chat");
-    chat.innerHTML = `<div class="empty-chat"><p>Arrasta um ficheiro para começar</p><p>ou clica num dos prompts rápidos abaixo</p></div>`;
+    document.getElementById("chat").innerHTML =
+        `<div class="empty-chat"><p>Arrasta um ficheiro para começar</p><p>ou clica num dos prompts rápidos abaixo</p></div>`;
     await loadHistory();
 }
-
-// ===== Pesquisa =====
 
 function filterConversations() {
     const q = (document.getElementById("search").value || "").toLowerCase();
@@ -220,8 +227,6 @@ function filterConversations() {
         conv.style.display = title.includes(q) ? "flex" : "none";
     });
 }
-
-// ===== Anexos (drag-drop + pdf.js) =====
 
 function renderAttachments() {
     const box = document.getElementById("attachments");
@@ -292,18 +297,22 @@ async function convertPdfToImages(file) {
     }
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const maxPages = Math.min(pdf.numPages, 8); // Limite para não inchar a payload.
+    // Máximo 8 páginas para não exceder o limite de tokens do modelo.
+    const maxPages = Math.min(pdf.numPages, 8);
+
     for (let p = 1; p <= maxPages; p++) {
         const page = await pdf.getPage(p);
         const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        // Limitar largura máxima a 1600px para reduzir tamanho.
         const scale = viewport.width > 1600 ? 1600 / viewport.width : 1;
         const finalViewport = page.getViewport({ scale: 1.5 * scale });
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
         canvas.width = finalViewport.width;
         canvas.height = finalViewport.height;
+
         await page.render({ canvasContext: ctx, viewport: finalViewport }).promise;
+
         const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
         attachments.push({
             id: ++attachmentCounter,
@@ -313,6 +322,7 @@ async function convertPdfToImages(file) {
             mime: "image/jpeg"
         });
     }
+
     if (pdf.numPages > maxPages) {
         alert(`O PDF tem ${pdf.numPages} páginas — apenas as primeiras ${maxPages} serão enviadas para análise.`);
     }
@@ -323,9 +333,10 @@ function setupDropZone() {
     const fi = document.getElementById("fileInput");
     if (!dz || !fi) return;
 
+    // Limpar após upload para permitir re-selecionar o mesmo ficheiro.
     fi.addEventListener("change", () => {
         handleFiles(fi.files);
-        fi.value = ""; // permitir re-upload do mesmo ficheiro
+        fi.value = "";
     });
 
     ["dragenter", "dragover"].forEach(ev => {
@@ -335,6 +346,7 @@ function setupDropZone() {
             dz.classList.add("is-dragover");
         });
     });
+
     ["dragleave", "drop"].forEach(ev => {
         dz.addEventListener(ev, (e) => {
             e.preventDefault();
@@ -342,13 +354,12 @@ function setupDropZone() {
             dz.classList.remove("is-dragover");
         });
     });
+
     dz.addEventListener("drop", (e) => {
         const files = e.dataTransfer?.files;
         if (files && files.length > 0) handleFiles(files);
     });
 }
-
-// ===== Prompts rápidos =====
 
 function setupQuickPrompts() {
     document.querySelectorAll(".quick-prompts .chip").forEach(btn => {
@@ -360,8 +371,6 @@ function setupQuickPrompts() {
         });
     });
 }
-
-// ===== Envio =====
 
 async function send() {
     if (isSending) return;
@@ -380,7 +389,6 @@ async function send() {
         return;
     }
 
-    // Garantir que existe uma conversa ativa.
     if (activeConversationId === null) {
         const res = await fetch("/api/invoice-new-chat", { method: "POST" });
         if (res.ok) {
@@ -393,16 +401,12 @@ async function send() {
     sendBtn.disabled = true;
     sendBtn.textContent = "A enviar...";
 
-    // Remover empty-chat se existir.
     chat.querySelector(".empty-chat")?.remove();
 
-    // Render imediato da mensagem do utilizador.
     const userTextShown = message || "(documento anexado)";
     renderUserMessage(userTextShown, images);
-
     input.value = "";
 
-    // Indicador "A pensar..."
     const loading = document.createElement("div");
     loading.className = "message bot";
     loading.id = "loading";
@@ -414,7 +418,11 @@ async function send() {
     const timerInterval = setInterval(() => {
         const s = (Date.now() - start) / 1000;
         const t = document.getElementById("timer");
-        if (t) t.textContent = s >= 60 ? `${Math.floor(s/60)}:${(s%60).toFixed(2).padStart(5,'0')}s` : `${s.toFixed(2)}s`;
+        if (t) {
+            t.textContent = s >= 60
+                ? `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, "0")}s`
+                : `${s.toFixed(2)}s`;
+        }
     }, 100);
 
     let data;
@@ -445,7 +453,6 @@ async function send() {
     const modelName = modelSelect.options[modelSelect.selectedIndex]?.text || modelSelect.value;
     renderBotMessage(replyText, formatTime(data?.time), modelName);
 
-    // Limpar anexos após envio bem-sucedido.
     if (!data?.error) {
         clearAttachments();
     }
@@ -458,15 +465,12 @@ async function send() {
     isSending = false;
 }
 
-// ===== Inicialização =====
-
 window.addEventListener("DOMContentLoaded", async () => {
     setupDropZone();
     setupQuickPrompts();
 
     document.getElementById("search")?.addEventListener("input", filterConversations);
 
-    // Ctrl+Enter envia (Enter sozinho cria nova linha porque é textarea).
     document.getElementById("input")?.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
@@ -478,6 +482,4 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (conversationHistory.length > 0) {
         loadConversation(conversationHistory[conversationHistory.length - 1].id);
     }
-   
-
 });
