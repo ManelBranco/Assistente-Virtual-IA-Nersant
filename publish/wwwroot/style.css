@@ -926,6 +926,52 @@ button:hover {
     object-fit: cover;
     border-radius: 6px;
     border: 2px solid rgba(255,255,255,0.4);
+    cursor: zoom-in;
+    transition: opacity 0.15s;
+}
+
+.message-thumb:hover {
+    opacity: 0.85;
+}
+
+/* Lightbox */
+.image-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.88);
+    align-items: center;
+    justify-content: center;
+}
+
+.image-lightbox.active {
+    display: flex;
+}
+
+.image-lightbox img {
+    max-width: 92vw;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+}
+
+.image-lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+.image-lightbox-close:hover {
+    opacity: 1;
 }
 
 @media (max-width: 768px) {

@@ -45,11 +45,25 @@ function renderUserMessage(text, imageDataUrls) {
             const img = document.createElement("img");
             img.src = url;
             img.className = "message-thumb";
+            img.title = "Clica para ampliar";
+            img.addEventListener("click", () => openLightbox(url));
             gallery.appendChild(img);
         });
         messageDiv.appendChild(gallery);
     }
     chat.appendChild(messageDiv);
+}
+
+// ===== Lightbox =====
+
+function openLightbox(src) {
+    document.getElementById("lightboxImg").src = src;
+    document.getElementById("imageLightbox").classList.add("active");
+}
+
+function closeLightbox() {
+    document.getElementById("imageLightbox").classList.remove("active");
+    document.getElementById("lightboxImg").src = "";
 }
 
 function formatTime(ms) {
@@ -93,6 +107,12 @@ function showClearHistoryConfirm() {
 window.addEventListener("click", (event) => {
     const m = document.getElementById("confirmModal");
     if (event.target === m) closeConfirmModal();
+    const lb = document.getElementById("imageLightbox");
+    if (event.target === lb) closeLightbox();
+});
+
+window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeLightbox();
 });
 
 // ===== Histórico (sidebar) =====
