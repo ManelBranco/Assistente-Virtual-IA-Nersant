@@ -259,7 +259,7 @@ app.MapPost("/api/chat", async (HttpContext http, ChatRequest request) =>
     {
         using var httpClient = new HttpClient();
 
-        const string ollamaBase = "http://localhost:11434";
+        const string ollamaBase = "http://10.1.0.152:11434";
         string usedModel = request.Model;
         string usedEndpoint = "v1/chat/completions";
         string usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
@@ -444,7 +444,7 @@ app.MapPost("/api/invoice-chat", async (HttpContext http, InvoiceChatRequest req
     {
         using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
 
-        const string ollamaBase = "http://localhost:11434";
+        const string ollamaBase = "http://10.1.0.152:11434";
         string usedModel = request.Model;
         string usedEndpoint = "v1/chat/completions";
         string usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
