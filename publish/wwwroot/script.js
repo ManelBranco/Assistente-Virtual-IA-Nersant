@@ -450,9 +450,33 @@ async function send() {
     isSending = false;
 }
 
+// Carregar modelos disponíveis no Ollama e popular o select
+async function loadModels() {
+    const select = document.getElementById("model");
+    if (!select) return;
+
+    try {
+        const res = await fetch("/api/models");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.models || data.models.length === 0) return;
+
+        select.innerHTML = "";
+        data.models.forEach(name => {
+            const option = document.createElement("option");
+            option.value = name;
+            option.textContent = name;
+            select.appendChild(option);
+        });
+    } catch {
+        console.warn("Não foi possível carregar modelos do Ollama — a usar lista estática.");
+    }
+}
+
 // Configurar eventos quando a página carregar
 window.addEventListener("DOMContentLoaded", async () => {
     console.log("DOMContentLoaded do script.js executado");
+    await loadModels();
     await loadHistory();
     // Se há conversas no histórico, carregar a última; senão, criar uma nova
     if (conversationHistory.length > 0) {

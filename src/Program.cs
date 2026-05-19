@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
 // Configuração do servidor Web e permissões CORS para permitir pedidos do navegador.
+const string OLLAMA_BASE = "http://10.1.0.152:11434";
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors();
 
@@ -259,10 +261,9 @@ app.MapPost("/api/chat", async (HttpContext http, ChatRequest request) =>
     {
         using var httpClient = new HttpClient();
 
-        const string ollamaBase = "http://10.1.0.152:11434";
         string usedModel = request.Model;
         string usedEndpoint = "v1/chat/completions";
-        string usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
+        string usedApiUrl = $"{OLLAMA_BASE}/{usedEndpoint}";
 
         var response = await httpClient.PostAsJsonAsync(
             usedApiUrl,
@@ -275,7 +276,7 @@ app.MapPost("/api/chat", async (HttpContext http, ChatRequest request) =>
         if (!response.IsSuccessStatusCode && (lowerContent.Contains("not found") || lowerContent.Contains("invalid model") || lowerContent.Contains("invalid request") || lowerContent.Contains("unsupported") || lowerContent.Contains("internal server error")))
         {
             usedEndpoint = "api/chat";
-            usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
+            usedApiUrl = $"{OLLAMA_BASE}/{usedEndpoint}";
             response = await httpClient.PostAsJsonAsync(
                 usedApiUrl,
                 new { model = request.Model, messages, stream = false, options = new { temperature = 0.2 } }
@@ -444,10 +445,9 @@ app.MapPost("/api/invoice-chat", async (HttpContext http, InvoiceChatRequest req
     {
         using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
 
-        const string ollamaBase = "http://10.1.0.152:11434";
         string usedModel = request.Model;
         string usedEndpoint = "v1/chat/completions";
-        string usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
+        string usedApiUrl = $"{OLLAMA_BASE}/{usedEndpoint}";
 
         var response = await httpClient.PostAsJsonAsync(
             usedApiUrl,
@@ -460,7 +460,7 @@ app.MapPost("/api/invoice-chat", async (HttpContext http, InvoiceChatRequest req
         if (!response.IsSuccessStatusCode && (lowerContent.Contains("not found") || lowerContent.Contains("invalid model") || lowerContent.Contains("invalid request") || lowerContent.Contains("unsupported") || lowerContent.Contains("internal server error") || lowerContent.Contains("api_error") || lowerContent.Contains("more system memory")))
         {
             usedEndpoint = "api/chat";
-            usedApiUrl = $"{ollamaBase}/{usedEndpoint}";
+            usedApiUrl = $"{OLLAMA_BASE}/{usedEndpoint}";
             response = await httpClient.PostAsJsonAsync(
                 usedApiUrl,
                 new { model = request.Model, messages = messagesNative, stream = false, options = new { temperature = 0.2 } }
@@ -492,6 +492,34 @@ app.MapPost("/api/invoice-chat", async (HttpContext http, InvoiceChatRequest req
     catch (Exception ex)
     {
         return Results.Json(new { reply = "Erro no servidor", time = 0, error = ex.Message, conversationId = conversation.Id }, statusCode: 500, options: jsonOptions);
+    }
+});
+
+// Devolve a lista de modelos disponíveis no servidor Ollama.
+app.MapGet("/api/models", async () =>
+{
+    try
+    {
+        using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        var response = await httpClient.GetAsync($"{OLLAMA_BASE}/api/tags");
+        if (!response.IsSuccessStatusCode)
+            return Results.Json(new { models = Array.Empty<string>() });
+
+        var content = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(content);
+        var models = doc.RootElement
+            .GetProperty("models")
+            .EnumerateArray()
+            .Select(m => m.GetProperty("name").GetString()!)
+            .Where(n => !string.IsNullOrEmpty(n))
+            .OrderBy(n => n)
+            .ToList();
+
+        return Results.Json(new { models }, jsonOptions);
+    }
+    catch
+    {
+        return Results.Json(new { models = Array.Empty<string>() });
     }
 });
 
