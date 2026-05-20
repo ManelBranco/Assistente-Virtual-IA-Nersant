@@ -450,28 +450,7 @@ async function send() {
     isSending = false;
 }
 
-// Carregar modelos disponíveis no Ollama e popular o select
-async function loadModels() {
-    const select = document.getElementById("model");
-    if (!select) return;
-
-    try {
-        const res = await fetch("/api/models");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.models || data.models.length === 0) return;
-
-        select.innerHTML = "";
-        data.models.forEach(name => {
-            const option = document.createElement("option");
-            option.value = name;
-            option.textContent = name;
-            select.appendChild(option);
-        });
-    } catch {
-        console.warn("Não foi possível carregar modelos do Ollama — a usar lista estática.");
-    }
-}
+async function loadModels() {}
 
 // Configurar eventos quando a página carregar
 window.addEventListener("DOMContentLoaded", async () => {

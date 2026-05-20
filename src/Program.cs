@@ -512,7 +512,6 @@ app.MapGet("/api/models", async () =>
             .EnumerateArray()
             .Select(m => m.GetProperty("name").GetString()!)
             .Where(n => !string.IsNullOrEmpty(n))
-            .OrderBy(n => n)
             .ToList();
 
         return Results.Json(new { models }, jsonOptions);
