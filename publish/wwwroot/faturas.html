@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Análise de Faturas - Assistente Nersant</title>
+<script>try{if(localStorage.getItem("nersant-theme")==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -45,6 +46,7 @@
                 <p class="topbar-subtitle">Carrega um PDF ou imagem para extrair os dados da fatura</p>
             </div>
             <div class="topbar-controls">
+                <button type="button" id="themeToggle" class="theme-toggle" aria-label="Alternar tema">&#9789;</button>
                 <label for="model">Modelo</label>
                 <select id="model">
                     <option value="qwen2.5vl:7b" selected>Qwen 2.5 VL 7B — Vision (recomendado)</option>
@@ -116,6 +118,7 @@
     <img id="lightboxImg" src="" alt="Imagem ampliada">
 </div>
 
+<script src="theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>

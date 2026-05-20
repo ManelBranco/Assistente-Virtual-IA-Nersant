@@ -4,6 +4,7 @@
 <meta charset="UTF-8">                            <!-- Suporte a caracteres especiais -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- Responsividade móvel -->
 <title>Assistente Virtual IA Nersant - Torres Novas</title>
+<script>try{if(localStorage.getItem("nersant-theme")==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}</script>
 <link rel="stylesheet" href="style.css">          <!-- CSS para estilos -->
 </head>
 <body>
@@ -51,6 +52,7 @@
                 <p class="topbar-subtitle"> Inovação e tecnologia ao seu serviço</p>
             </div>
             <div class="topbar-controls">
+                <button type="button" id="themeToggle" class="theme-toggle" aria-label="Alternar tema">&#9789;</button>
                 <label for="model"> Modelo</label>
                 <select id="model">
                     <option value="qwen2.5:0.5b">Qwen 2.5 </option>
@@ -134,6 +136,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="theme.js"></script>
 <script src="script.js"></script>  <!-- JavaScript para funcionalidade -->
 </body>
 </html>
