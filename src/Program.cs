@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
 // Configuração do servidor Web e permissões CORS para permitir pedidos do navegador.
-const string OLLAMA_BASE = "http://127.0.0.1:11434"; // URL do servidor Ollama (ajusta conforme necessário).
+const string OLLAMA_BASE = "http://10.1.0.144:11434/"; // URL do servidor Ollama (ajusta conforme necessário).
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors();
