@@ -1,283 +1,258 @@
 -- =============================================
--- Assistente Virtual IA Nersant - Schema SQL
--- Base de dados para armazenar conversas, mensagens e estatísticas
+-- Assistente Virtual IA Nersant - Schema MySQL
 -- =============================================
 
-USE [AssistenteVirtualDB];
-GO
+CREATE DATABASE IF NOT EXISTS AssistenteVirtualDB
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+USE AssistenteVirtualDB;
 
 -- =============================================
 -- Tabela: Conversations
--- Armazena as conversas do assistente
 -- =============================================
-CREATE TABLE Conversations (
-    ConversationId INT PRIMARY KEY IDENTITY(1,1),
-    Title NVARCHAR(MAX) NOT NULL,
-    CreatedAt DATETIME DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME DEFAULT GETUTCDATE(),
-    IsArchived BIT DEFAULT 0,
-    ModelUsed NVARCHAR(50), -- Modelo usado na conversa
-    TotalMessages INT DEFAULT 0
+CREATE TABLE IF NOT EXISTS Conversations (
+    ConversationId INT          PRIMARY KEY AUTO_INCREMENT,
+    Title          LONGTEXT     NOT NULL,
+    Type           VARCHAR(20)  NOT NULL DEFAULT 'chat',   -- 'chat' ou 'invoice'
+    CreatedAt      DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    UpdatedAt      DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    IsArchived     TINYINT(1)   NOT NULL DEFAULT 0,
+    ModelUsed      VARCHAR(100),
+    TotalMessages  INT          NOT NULL DEFAULT 0
 );
 
 -- =============================================
 -- Tabela: Messages
--- Armazena as mensagens individuais das conversas
 -- =============================================
-CREATE TABLE Messages (
-    MessageId BIGINT PRIMARY KEY IDENTITY(1,1),
-    ConversationId INT NOT NULL FOREIGN KEY REFERENCES Conversations(ConversationId) ON DELETE CASCADE,
-    Role NVARCHAR(10) NOT NULL CHECK (Role IN ('user', 'bot')), -- "user" ou "bot"
-    Content NVARCHAR(MAX) NOT NULL,
-    Timestamp DATETIME DEFAULT GETUTCDATE(),
-    Model NVARCHAR(50), -- Modelo usado para esta mensagem específica
-    ResponseTimeMs BIGINT, -- Tempo de resposta da IA em milissegundos
-    TokensUsed INT, -- Número de tokens processados (para futuro)
-    IsEdited BIT DEFAULT 0,
-    EditedAt DATETIME
+CREATE TABLE IF NOT EXISTS Messages (
+    MessageId      BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    ConversationId INT          NOT NULL,
+    Role           VARCHAR(10)  NOT NULL,
+    Content        LONGTEXT     NOT NULL,
+    Timestamp      DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    Model          VARCHAR(100),
+    ResponseTimeMs BIGINT,
+    TokensUsed     INT,
+    IsEdited       TINYINT(1)   NOT NULL DEFAULT 0,
+    EditedAt       DATETIME,
+
+    CONSTRAINT CHK_Messages_Role CHECK (Role IN ('user', 'bot')),
+    CONSTRAINT FK_Messages_Conversations
+        FOREIGN KEY (ConversationId)
+        REFERENCES Conversations(ConversationId)
+        ON DELETE CASCADE
 );
 
 -- =============================================
 -- Tabela: Statistics
--- Estatísticas globais do sistema
+-- Linha única (StatisticId = 1) com totais globais
 -- =============================================
-CREATE TABLE Statistics (
-    StatisticId INT PRIMARY KEY IDENTITY(1,1),
-    TotalThinkingTimeMs BIGINT DEFAULT 0, -- Tempo total de processamento
-    MessagesSentCount INT DEFAULT 0, -- Total de mensagens enviadas
-    TotalConversations INT DEFAULT 0, -- Total de conversas criadas
-    CreatedAt DATETIME DEFAULT GETUTCDATE(),
-    LastUpdatedAt DATETIME DEFAULT GETUTCDATE()
+CREATE TABLE IF NOT EXISTS Statistics (
+    StatisticId          INT    PRIMARY KEY AUTO_INCREMENT,
+    TotalThinkingTimeMs  BIGINT NOT NULL DEFAULT 0,
+    MessagesSentCount    INT    NOT NULL DEFAULT 0,
+    TotalConversations   INT    NOT NULL DEFAULT 0,
+    CreatedAt            DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    LastUpdatedAt        DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP())
 );
 
 -- =============================================
--- Tabela: ConversationLogs (Auditoria)
--- Registra eventos importantes das conversas
+-- Tabela: Settings
+-- Configurações persistentes da aplicação
+-- (substitui ficheiros como context_prompt.txt)
 -- =============================================
-CREATE TABLE ConversationLogs (
-    LogId BIGINT PRIMARY KEY IDENTITY(1,1),
-    ConversationId INT FOREIGN KEY REFERENCES Conversations(ConversationId),
-    EventType NVARCHAR(50), -- "created", "message_added", "archived", "deleted"
-    Details NVARCHAR(MAX), -- JSON com contexto adicional
-    Timestamp DATETIME DEFAULT GETUTCDATE(),
-    ErrorMessage NVARCHAR(MAX)
+CREATE TABLE IF NOT EXISTS Settings (
+    SettingKey   VARCHAR(100) PRIMARY KEY,
+    SettingValue LONGTEXT,
+    UpdatedAt    DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP())
 );
 
 -- =============================================
--- ÍNDICES PARA PERFORMANCE
+-- ÍNDICES
 -- =============================================
-CREATE INDEX IX_Conversations_CreatedAt ON Conversations(CreatedAt);
+CREATE INDEX IX_Conversations_CreatedAt  ON Conversations(CreatedAt);
 CREATE INDEX IX_Conversations_IsArchived ON Conversations(IsArchived);
-CREATE INDEX IX_Messages_ConversationId ON Messages(ConversationId);
-CREATE INDEX IX_Messages_Timestamp ON Messages(Timestamp);
-CREATE INDEX IX_Messages_Role ON Messages(Role);
-CREATE INDEX IX_ConversationLogs_ConversationId ON ConversationLogs(ConversationId);
-CREATE INDEX IX_ConversationLogs_Timestamp ON ConversationLogs(Timestamp);
+CREATE INDEX IX_Conversations_Type       ON Conversations(Type);
+CREATE INDEX IX_Messages_ConversationId  ON Messages(ConversationId);
+CREATE INDEX IX_Messages_Timestamp       ON Messages(Timestamp);
 
 -- =============================================
--- TRIGGERS PARA MANUTENÇÃO AUTOMÁTICA
+-- TRIGGERS
 -- =============================================
+DELIMITER $$
 
--- Trigger para atualizar UpdatedAt em Conversations
+-- Atualiza UpdatedAt automaticamente ao editar uma conversa
 CREATE TRIGGER TR_Conversations_UpdateTimestamp
-ON Conversations
-AFTER UPDATE
-AS
+BEFORE UPDATE ON Conversations
+FOR EACH ROW
+BEGIN
+    SET NEW.UpdatedAt = UTC_TIMESTAMP();
+END$$
+
+-- Recalcula TotalMessages ao inserir uma mensagem
+CREATE TRIGGER TR_Messages_IncrementCount
+AFTER INSERT ON Messages
+FOR EACH ROW
 BEGIN
     UPDATE Conversations
-    SET UpdatedAt = GETUTCDATE()
-    WHERE ConversationId IN (SELECT ConversationId FROM inserted);
-END;
-GO
-
--- Trigger para atualizar TotalMessages em Conversations
-CREATE TRIGGER TR_Messages_UpdateConversationCount
-ON Messages
-AFTER INSERT, DELETE
-AS
-BEGIN
-    UPDATE c
     SET TotalMessages = (
-        SELECT COUNT(*)
-        FROM Messages m
-        WHERE m.ConversationId = c.ConversationId
+        SELECT COUNT(*) FROM Messages WHERE ConversationId = NEW.ConversationId
     )
-    FROM Conversations c
-    WHERE c.ConversationId IN (
-        SELECT DISTINCT ConversationId FROM inserted
-        UNION
-        SELECT DISTINCT ConversationId FROM deleted
-    );
-END;
-GO
+    WHERE ConversationId = NEW.ConversationId;
+END$$
 
--- Trigger para atualizar LastUpdatedAt em Statistics
-CREATE TRIGGER TR_Statistics_UpdateTimestamp
-ON Statistics
-AFTER UPDATE
-AS
+-- Recalcula TotalMessages ao apagar uma mensagem
+CREATE TRIGGER TR_Messages_DecrementCount
+AFTER DELETE ON Messages
+FOR EACH ROW
 BEGIN
-    UPDATE Statistics
-    SET LastUpdatedAt = GETUTCDATE()
-    WHERE StatisticId IN (SELECT StatisticId FROM inserted);
-END;
-GO
+    UPDATE Conversations
+    SET TotalMessages = (
+        SELECT COUNT(*) FROM Messages WHERE ConversationId = OLD.ConversationId
+    )
+    WHERE ConversationId = OLD.ConversationId;
+END$$
+
+-- Atualiza LastUpdatedAt automaticamente ao editar estatísticas
+CREATE TRIGGER TR_Statistics_UpdateTimestamp
+BEFORE UPDATE ON Statistics
+FOR EACH ROW
+BEGIN
+    SET NEW.LastUpdatedAt = UTC_TIMESTAMP();
+END$$
+
+-- Atualiza UpdatedAt em Settings ao editar
+CREATE TRIGGER TR_Settings_UpdateTimestamp
+BEFORE UPDATE ON Settings
+FOR EACH ROW
+BEGIN
+    SET NEW.UpdatedAt = UTC_TIMESTAMP();
+END$$
+
+DELIMITER ;
 
 -- =============================================
 -- DADOS INICIAIS
 -- =============================================
 
--- Inserir estatísticas iniciais (se não existir)
-IF NOT EXISTS (SELECT 1 FROM Statistics WHERE StatisticId = 1)
-BEGIN
-    INSERT INTO Statistics (StatisticId, TotalThinkingTimeMs, MessagesSentCount, TotalConversations)
-    VALUES (1, 0, 0, 0);
-END
-GO
+-- Registo único de estatísticas globais
+INSERT INTO Statistics (StatisticId, TotalThinkingTimeMs, MessagesSentCount, TotalConversations)
+VALUES (1, 0, 0, 0)
+ON DUPLICATE KEY UPDATE StatisticId = StatisticId;
+
+-- Prompt de contexto por omissão (vazio)
+INSERT INTO Settings (SettingKey, SettingValue)
+VALUES ('context_prompt', '')
+ON DUPLICATE KEY UPDATE SettingKey = SettingKey;
 
 -- =============================================
--- VIEWS ÚTEIS
+-- VIEWS
 -- =============================================
 
--- View para estatísticas resumidas
-CREATE VIEW vw_StatisticsSummary AS
+CREATE OR REPLACE VIEW vw_StatisticsSummary AS
 SELECT
     s.TotalConversations,
     s.MessagesSentCount,
     s.TotalThinkingTimeMs,
     CAST(s.TotalThinkingTimeMs / 1000.0 AS DECIMAL(10,2)) AS TotalThinkingTimeSeconds,
     CASE
-        WHEN s.TotalConversations > 0 THEN CAST(s.MessagesSentCount AS DECIMAL(10,2)) / s.TotalConversations
+        WHEN s.TotalConversations > 0
+            THEN CAST(s.MessagesSentCount AS DECIMAL(10,2)) / s.TotalConversations
         ELSE 0
     END AS AvgMessagesPerConversation,
     s.LastUpdatedAt
 FROM Statistics s
 WHERE s.StatisticId = 1;
-GO
 
--- View para conversas com última mensagem
-CREATE VIEW vw_ConversationsWithLastMessage AS
+CREATE OR REPLACE VIEW vw_ConversationsWithLastMessage AS
 SELECT
     c.ConversationId,
     c.Title,
+    c.Type,
     c.CreatedAt,
     c.UpdatedAt,
     c.IsArchived,
     c.ModelUsed,
     c.TotalMessages,
-    m.Timestamp AS LastMessageAt,
-    m.Content AS LastMessageContent,
-    m.Role AS LastMessageRole
+    last_msg.Timestamp      AS LastMessageAt,
+    last_msg.Content        AS LastMessageContent,
+    last_msg.Role           AS LastMessageRole
 FROM Conversations c
 LEFT JOIN (
     SELECT ConversationId, Timestamp, Content, Role,
            ROW_NUMBER() OVER (PARTITION BY ConversationId ORDER BY Timestamp DESC) AS rn
     FROM Messages
-) m ON c.ConversationId = m.ConversationId AND m.rn = 1;
-GO
+) AS last_msg ON c.ConversationId = last_msg.ConversationId AND last_msg.rn = 1;
 
 -- =============================================
--- STORED PROCEDURES ÚTEIS
+-- STORED PROCEDURES
 -- =============================================
+DELIMITER $$
 
--- Procedure para criar nova conversa
-CREATE PROCEDURE sp_CreateConversation
-    @Title NVARCHAR(MAX),
-    @ModelUsed NVARCHAR(50) = NULL
-AS
+-- Criar nova conversa
+CREATE PROCEDURE sp_CreateConversation(
+    IN p_Title     LONGTEXT,
+    IN p_ModelUsed VARCHAR(100),
+    IN p_Type      VARCHAR(20)
+)
 BEGIN
-    INSERT INTO Conversations (Title, ModelUsed)
-    VALUES (@Title, @ModelUsed);
+    INSERT INTO Conversations (Title, ModelUsed, Type)
+    VALUES (p_Title, p_ModelUsed, IFNULL(p_Type, 'chat'));
 
-    SELECT SCOPE_IDENTITY() AS ConversationId;
-END;
-GO
+    SELECT LAST_INSERT_ID() AS ConversationId;
+END$$
 
--- Procedure para adicionar mensagem
-CREATE PROCEDURE sp_AddMessage
-    @ConversationId INT,
-    @Role NVARCHAR(10),
-    @Content NVARCHAR(MAX),
-    @Model NVARCHAR(50) = NULL,
-    @ResponseTimeMs BIGINT = NULL,
-    @TokensUsed INT = NULL
-AS
+-- Adicionar mensagem a uma conversa
+CREATE PROCEDURE sp_AddMessage(
+    IN p_ConversationId INT,
+    IN p_Role           VARCHAR(10),
+    IN p_Content        LONGTEXT,
+    IN p_Model          VARCHAR(100),
+    IN p_ResponseTimeMs BIGINT,
+    IN p_TokensUsed     INT
+)
 BEGIN
     INSERT INTO Messages (ConversationId, Role, Content, Model, ResponseTimeMs, TokensUsed)
-    VALUES (@ConversationId, @Role, @Content, @Model, @ResponseTimeMs, @TokensUsed);
+    VALUES (p_ConversationId, p_Role, p_Content, p_Model, p_ResponseTimeMs, p_TokensUsed);
+END$$
 
-    -- Log do evento
-    INSERT INTO ConversationLogs (ConversationId, EventType, Details)
-    VALUES (@ConversationId, 'message_added', '{"role":"' + @Role + '","length":' + CAST(LEN(@Content) AS NVARCHAR) + '}');
-END;
-GO
-
--- Procedure para atualizar estatísticas
-CREATE PROCEDURE sp_UpdateStatistics
-    @ThinkingTimeMs BIGINT = NULL,
-    @MessagesSent INT = NULL,
-    @Conversations INT = NULL
-AS
+-- Atualizar estatísticas globais (incremento)
+CREATE PROCEDURE sp_UpdateStatistics(
+    IN p_ThinkingTimeMs BIGINT,
+    IN p_MessagesSent   INT,
+    IN p_Conversations  INT
+)
 BEGIN
     UPDATE Statistics
     SET
-        TotalThinkingTimeMs = ISNULL(TotalThinkingTimeMs, 0) + ISNULL(@ThinkingTimeMs, 0),
-        MessagesSentCount = ISNULL(MessagesSentCount, 0) + ISNULL(@MessagesSent, 0),
-        TotalConversations = ISNULL(TotalConversations, 0) + ISNULL(@Conversations, 0)
+        TotalThinkingTimeMs = TotalThinkingTimeMs + IFNULL(p_ThinkingTimeMs, 0),
+        MessagesSentCount   = MessagesSentCount   + IFNULL(p_MessagesSent, 0),
+        TotalConversations  = TotalConversations  + IFNULL(p_Conversations, 0)
     WHERE StatisticId = 1;
-END;
-GO
+END$$
 
--- Procedure para arquivar conversa
-CREATE PROCEDURE sp_ArchiveConversation
-    @ConversationId INT
-AS
+-- Arquivar (soft-delete) uma conversa
+CREATE PROCEDURE sp_ArchiveConversation(
+    IN p_ConversationId INT
+)
 BEGIN
     UPDATE Conversations
     SET IsArchived = 1
-    WHERE ConversationId = @ConversationId;
+    WHERE ConversationId = p_ConversationId;
+END$$
 
-    INSERT INTO ConversationLogs (ConversationId, EventType, Details)
-    VALUES (@ConversationId, 'archived', 'Conversation archived');
-END;
-GO
+-- Ler ou atualizar uma definição (Settings)
+CREATE PROCEDURE sp_SetSetting(
+    IN p_Key   VARCHAR(100),
+    IN p_Value LONGTEXT
+)
+BEGIN
+    INSERT INTO Settings (SettingKey, SettingValue)
+    VALUES (p_Key, p_Value)
+    ON DUPLICATE KEY UPDATE SettingValue = p_Value;
+END$$
 
--- =============================================
--- SCRIPT DE MIGRAÇÃO DOS DADOS JSON EXISTENTES
--- =============================================
+DELIMITER ;
 
--- Este script deve ser executado APÓS criar as tabelas
--- Substitua os valores pelos dados dos seus arquivos JSON
-
--- 1. Migrar estatísticas
--- UPDATE Statistics SET
---     TotalThinkingTimeMs = 0,  -- valor de stats.json
---     MessagesSentCount = 0,    -- valor de stats.json
---     TotalConversations = 1    -- valor de stats.json
--- WHERE StatisticId = 1;
-
--- 2. Migrar conversas e mensagens
--- DECLARE @ConversationId INT;
--- DECLARE @MessageId BIGINT;
-
--- -- Conversa 1
--- INSERT INTO Conversations (Title, CreatedAt) VALUES ('olá', GETUTCDATE());
--- SET @ConversationId = SCOPE_IDENTITY();
-
--- INSERT INTO Messages (ConversationId, Role, Content, Timestamp) VALUES
--- (@ConversationId, 'user', 'olá', GETUTCDATE()),
--- (@ConversationId, 'bot', 'Olá! Sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso ajudar você hoje?', GETUTCDATE());
-
--- -- Conversa 2
--- INSERT INTO Conversations (Title, CreatedAt) VALUES ('olá', GETUTCDATE());
--- SET @ConversationId = SCOPE_IDENTITY();
-
--- INSERT INTO Messages (ConversationId, Role, Content, Timestamp) VALUES
--- (@ConversationId, 'user', 'olá', GETUTCDATE()),
--- (@ConversationId, 'bot', 'Olá! Sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso te ajudar hoje?', GETUTCDATE()),
--- (@ConversationId, 'user', 'olá', GETUTCDATE()),
--- (@ConversationId, 'bot', 'Olá, sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso te ajudar hoje?', GETUTCDATE());
-
-PRINT 'Schema SQL criado com sucesso!';
-PRINT 'Execute o script de migração dos dados JSON existentes.';
-GO
+SELECT 'Schema MySQL criado com sucesso!' AS Result;

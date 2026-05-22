@@ -1,84 +1,111 @@
 -- =============================================
--- SCRIPT DE MIGRAÇÃO - Dados JSON para SQL
--- Migra os dados dos arquivos conversas.json e stats.json
+-- SCRIPT DE MIGRAÇÃO - Dados JSON para MySQL
+-- Corre APÓS o database_schema.sql
 -- =============================================
 
-USE [AssistenteVirtualDB];
-GO
+USE AssistenteVirtualDB;
 
 -- =============================================
--- 1. MIGRAÇÃO DAS ESTATÍSTICAS
+-- 1. LIMPAR DADOS DE TESTES (opcional)
+-- Descomentar se quiseres começar do zero
 -- =============================================
-
--- Atualizar estatísticas com os valores atuais de stats.json
-UPDATE Statistics SET
-    TotalThinkingTimeMs = 0,      -- totalThinkingTime do stats.json
-    MessagesSentCount = 0,        -- messagesSentCount do stats.json
-    TotalConversations = 1,       -- totalConversations do stats.json
-    LastUpdatedAt = GETUTCDATE()
-WHERE StatisticId = 1;
-
-PRINT '✓ Estatísticas migradas';
-
--- =============================================
--- 2. MIGRAÇÃO DAS CONVERSAS E MENSAGENS
--- =============================================
-
--- Limpar dados existentes (se necessário)
 -- DELETE FROM Messages;
 -- DELETE FROM Conversations;
--- DBCC CHECKIDENT ('Conversations', RESEED, 0);
--- DBCC CHECKIDENT ('Messages', RESEED, 0);
-
--- Conversa ID 0: "olá"
-DECLARE @ConvId0 INT;
-INSERT INTO Conversations (Title, CreatedAt) VALUES ('olá', GETUTCDATE());
-SET @ConvId0 = SCOPE_IDENTITY();
-
-INSERT INTO Messages (ConversationId, Role, Content, Timestamp) VALUES
-(@ConvId0, 'user', 'olá', GETUTCDATE()),
-(@ConvId0, 'bot', 'Olá! Sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso ajudar você hoje?', GETUTCDATE());
-
-PRINT '✓ Conversa 0 migrada';
-
--- Conversa ID 1: "olá"
-DECLARE @ConvId1 INT;
-INSERT INTO Conversations (Title, CreatedAt) VALUES ('olá', GETUTCDATE());
-SET @ConvId1 = SCOPE_IDENTITY();
-
-INSERT INTO Messages (ConversationId, Role, Content, Timestamp) VALUES
-(@ConvId1, 'user', 'olá', GETUTCDATE()),
-(@ConvId1, 'bot', 'Olá! Sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso te ajudar hoje?', GETUTCDATE()),
-(@ConvId1, 'user', 'olá', GETUTCDATE()),
-(@ConvId1, 'bot', 'Olá, sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso te ajudar hoje?', GETUTCDATE());
-
-PRINT '✓ Conversa 1 migrada';
+-- DELETE FROM Statistics;
+-- ALTER TABLE Messages     AUTO_INCREMENT = 1;
+-- ALTER TABLE Conversations AUTO_INCREMENT = 1;
 
 -- =============================================
--- 3. VERIFICAÇÃO DA MIGRAÇÃO
+-- 2. MIGRAÇÃO DAS ESTATÍSTICAS
+-- Substituir os valores pelos do teu stats.json
 -- =============================================
 
--- Verificar conversas migradas
+INSERT INTO Statistics (StatisticId, TotalThinkingTimeMs, MessagesSentCount, TotalConversations)
+VALUES (1, 0, 0, 0)
+ON DUPLICATE KEY UPDATE
+    TotalThinkingTimeMs = VALUES(TotalThinkingTimeMs),
+    MessagesSentCount   = VALUES(MessagesSentCount),
+    TotalConversations  = VALUES(TotalConversations);
+
+SELECT 'Estatísticas migradas' AS Result;
+
+-- =============================================
+-- 3. MIGRAÇÃO DO CONTEXT PROMPT
+-- Substituir pelo conteúdo do teu context_prompt.txt
+-- =============================================
+
+INSERT INTO Settings (SettingKey, SettingValue)
+VALUES ('context_prompt', '')
+ON DUPLICATE KEY UPDATE SettingValue = VALUES(SettingValue);
+
+SELECT 'Context prompt migrado' AS Result;
+
+-- =============================================
+-- 4. MIGRAÇÃO DAS CONVERSAS (conversas.json)
+-- Para cada conversa do JSON, adicionar um bloco
+-- como o exemplo abaixo.
+-- Type = 'chat' para conversas normais
+-- =============================================
+
+-- Exemplo: Conversa 1
+INSERT INTO Conversations (Title, Type, CreatedAt, UpdatedAt)
+VALUES ('olá', 'chat', UTC_TIMESTAMP(), UTC_TIMESTAMP());
+
+SET @conv1 = LAST_INSERT_ID();
+
+INSERT INTO Messages (ConversationId, Role, Content, Timestamp) VALUES
+(@conv1, 'user', 'olá', UTC_TIMESTAMP()),
+(@conv1, 'bot',  'Olá! Sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso ajudar você hoje?', UTC_TIMESTAMP());
+
+-- Exemplo: Conversa 2
+INSERT INTO Conversations (Title, Type, CreatedAt, UpdatedAt)
+VALUES ('olá', 'chat', UTC_TIMESTAMP(), UTC_TIMESTAMP());
+
+SET @conv2 = LAST_INSERT_ID();
+
+INSERT INTO Messages (ConversationId, Role, Content, Timestamp) VALUES
+(@conv2, 'user', 'olá', UTC_TIMESTAMP()),
+(@conv2, 'bot',  'Olá! Sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso te ajudar hoje?', UTC_TIMESTAMP()),
+(@conv2, 'user', 'olá', UTC_TIMESTAMP()),
+(@conv2, 'bot',  'Olá, sou um assistente virtual de Inteligência Artificial da Nersant de Torres Novas. Como posso te ajudar hoje?', UTC_TIMESTAMP());
+
+SELECT 'Conversas (chat) migradas' AS Result;
+
+-- =============================================
+-- 5. MIGRAÇÃO DAS FATURAS (faturas.json)
+-- Igual ao bloco acima mas com Type = 'invoice'
+-- =============================================
+
+-- Exemplo: Conversa de fatura 1
+-- INSERT INTO Conversations (Title, Type, CreatedAt, UpdatedAt)
+-- VALUES ('Análise de fatura', 'invoice', UTC_TIMESTAMP(), UTC_TIMESTAMP());
+-- SET @fatura1 = LAST_INSERT_ID();
+-- INSERT INTO Messages (ConversationId, Role, Content, Timestamp) VALUES
+-- (@fatura1, 'user', '...', UTC_TIMESTAMP()),
+-- (@fatura1, 'bot',  '...', UTC_TIMESTAMP());
+
+-- =============================================
+-- 6. VERIFICAÇÃO DA MIGRAÇÃO
+-- =============================================
+
 SELECT
     c.ConversationId,
     c.Title,
+    c.Type,
     c.TotalMessages,
     c.CreatedAt
 FROM Conversations c
 ORDER BY c.ConversationId;
 
--- Verificar mensagens migradas
 SELECT
     m.MessageId,
     m.ConversationId,
     m.Role,
-    LEFT(m.Content, 100) + CASE WHEN LEN(m.Content) > 100 THEN '...' ELSE '' END AS ContentPreview,
+    LEFT(m.Content, 80) AS ContentPreview,
     m.Timestamp
 FROM Messages m
 ORDER BY m.ConversationId, m.Timestamp;
 
--- Verificar estatísticas
 SELECT * FROM vw_StatisticsSummary;
 
-PRINT '✓ Migração concluída com sucesso!';
-PRINT 'Verifique os dados acima para confirmar a migração.';
+SELECT 'Migração concluída. Verifique os dados acima.' AS Result;
